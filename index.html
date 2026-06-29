@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <link rel="stylesheet" href="css/common.css">
 <link rel="stylesheet" href="css/main.css">
+
 </head>
 
 <body>
@@ -16,10 +17,12 @@
         <img src="images/logo.png" alt="집찾go">
     </div>
     <nav>
-        <a href="#">AI추천</a>
-        <a href="#">매물찾기</a>
-        <a href="#">지도</a>
-        <a href="#">로그인</a>
+        <a href="templates/member/login.html">로그인</a>
+        <a href="templates/member/signup.html">회원가입</a>
+        <a href="templates/support/contact.html">고객센터</a>
+        <a href="templates/market/trend.html">시장동향</a>
+        <a href="templates/property/favorite.html">관심매물</a>
+
     </nav>
 </header>
 
@@ -43,7 +46,13 @@
                 <div class="tag">신혼부부 추천</div>
                 <div class="tag">출퇴근 30분</div>
             </div>
-            <button class="ask">AI 집찾기</button>
+            <button
+                class="ask"
+                onclick="location.href='templates/property/recommend.html'">
+
+                    AI 집찾기
+
+            </button>
         </div>
     </div>
 
@@ -67,7 +76,7 @@
             <span>장단점 분석</span>
         </a>
 
-        <a href="main2.html" class="feature f-main">
+        <a href="index.html" class="feature f-main">
             <i class="ti ti-home feature-icon"></i>
             <strong>메인 페이지</strong>
             <span>메인 페이지</span>
