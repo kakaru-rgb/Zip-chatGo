@@ -2,7 +2,23 @@
    main.css
    index.html 전용 스타일
    ====================== */
+.hero {
+    animation: fadeUp .8s ease;
+}
 
+@keyframes fadeUp {
+
+    from {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+}
 body{
     height:100vh;
     overflow:hidden;
