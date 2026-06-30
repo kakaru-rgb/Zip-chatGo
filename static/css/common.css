@@ -1,0 +1,73 @@
+/* ======================
+   common.css
+   전체 페이지 공통 스타일
+   ====================== */
+
+:root{
+    --primary:#1E88FF;
+    --accent:#17D4B3;
+    --dark:#0F172A;
+    --gray:#64748B;
+    --light:#F8FAFC;
+}
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Pretendard,sans-serif;
+}
+
+body{
+    background:linear-gradient(135deg,#F8FAFC,#EEF7FF);
+}
+
+/* ── header ── */
+
+header{
+    height:80px;
+    padding:0 60px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+}
+
+.logo img{
+    height:150px;
+    padding-top:50px;
+}
+
+nav{
+    display:flex;
+    gap:35px;
+}
+
+nav a{
+    text-decoration:none;
+    color:var(--dark);
+    font-weight:600;
+}
+
+/* ── responsive: common (header/nav) ── */
+
+@media (max-width:768px){
+
+    header{
+        padding:20px;
+        flex-direction:column;
+        gap:15px;
+    }
+
+    .logo img{
+        height:45px;
+        padding-top:0;
+    }
+
+    nav{
+        gap:18px;
+        flex-wrap:wrap;
+        justify-content:center;
+    }
+
+    nav a{ font-size:14px; }
+}
