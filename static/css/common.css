@@ -1,0 +1,68 @@
+/* ======================
+   common.css
+   Global tokens and shared utilities
+   ====================== */
+
+:root {
+    --color-primary: #0b5f6a;
+    --color-secondary: #f59e0b;
+    --color-surface: #f7faf9;
+    --color-dark: #172033;
+    --color-muted: #6b7280;
+    --color-line: rgba(255, 255, 255, 0.14);
+    --color-white: #ffffff;
+
+    --font-title: "Noto Sans KR", sans-serif;
+    --font-body: "Inter", "Noto Sans KR", sans-serif;
+
+    --breakpoint-sm: 576px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 992px;
+    --breakpoint-xl: 1200px;
+    --breakpoint-xxl: 1400px;
+
+    --container-max-width: 1320px;
+    --transition-base: 180ms ease;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-body);
+    color: var(--color-dark);
+    background: var(--color-surface);
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
+
+.jipgo-container {
+    width: min(100% - 32px, var(--container-max-width));
+    margin: 0 auto;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
