@@ -4,16 +4,11 @@
    ====================== */
 
 :root {
-    --color-primary: #0b5f6a;
-    --color-secondary: #f59e0b;
-    --color-surface: #f7faf9;
-    --color-dark: #172033;
-    --color-muted: #6b7280;
-    --color-line: rgba(255, 255, 255, 0.14);
-    --color-white: #ffffff;
-
-    --font-title: "Noto Sans KR", sans-serif;
-    --font-body: "Inter", "Noto Sans KR", sans-serif;
+    --primary: #1E88FF;
+    --accent: #17D4B3;
+    --dark: #0F172A;
+    --gray: #64748B;
+    --light: #F8FAFC;
 
     --breakpoint-sm: 576px;
     --breakpoint-md: 768px;
@@ -26,7 +21,10 @@
 }
 
 * {
+    margin: 0;
+    padding: 0;
     box-sizing: border-box;
+    font-family: Pretendard, sans-serif;
 }
 
 html {
@@ -34,10 +32,7 @@ html {
 }
 
 body {
-    margin: 0;
-    font-family: var(--font-body);
-    color: var(--color-dark);
-    background: var(--color-surface);
+    background: linear-gradient(135deg, #F8FAFC, #EEF7FF);
 }
 
 a {
@@ -147,7 +142,7 @@ header:hover .auth .login {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: var(--color-dark);
+    color: var(--dark);
     font-weight: 600;
     font-size: 15px;
     padding: 9px 16px;
@@ -157,7 +152,7 @@ header:hover .auth .login {
 
 .has-dropdown > a i {
     font-size: 17px;
-    color: var(--color-muted);
+    color: var(--gray);
     transition: color .15s, transform .2s;
 }
 
@@ -171,11 +166,11 @@ header:hover .auth .login {
 
 header:hover .has-dropdown:hover > a {
     background: rgba(255,255,255,.92);
-    color: var(--color-dark);
+    color: var(--dark);
 }
 
 header:hover .has-dropdown:hover > a i {
-    color: var(--color-primary);
+    color: var(--primary);
 }
 
 .dropdown {
@@ -229,7 +224,7 @@ header:hover .has-dropdown:hover > a i {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: var(--color-muted);
+    color: var(--gray);
     font-weight: 600;
     font-size: 15px;
     white-space: nowrap;
@@ -241,11 +236,11 @@ header:hover .has-dropdown:hover > a i {
 }
 
 .auth .support:hover {
-    color: var(--color-primary);
+    color: var(--primary);
 }
 
 .auth .login {
-    color: var(--color-muted);
+    color: var(--gray);
     font-weight: 600;
     font-size: 15px;
     white-space: nowrap;
@@ -253,7 +248,7 @@ header:hover .has-dropdown:hover > a i {
 }
 
 .auth .login:hover {
-    color: var(--color-dark);
+    color: var(--dark);
 }
 
 .auth .signup {
@@ -265,8 +260,8 @@ header:hover .has-dropdown:hover > a i {
     white-space: nowrap;
     background: linear-gradient(
         135deg,
-        var(--color-primary),
-        var(--color-secondary)
+        var(--primary),
+        var(--accent)
     );
     box-shadow: 0 6px 16px rgba(30,136,255,.25);
     transition: transform .15s, box-shadow .15s;
