@@ -9,21 +9,36 @@
 <link rel="stylesheet" href="static/css/main.css">
 
 </head>
-
+ 
 <body>
 
 <header>
-    <div class="logo">
+    <a href="index.html" class="logo">
         <img src="static/images/logo.png" alt="집찾go">
-    </div>
-    <nav>
-        <a href="templates/member/login.html">로그인</a>
-        <a href="templates/member/signup.html">회원가입</a>
-        <a href="templates/support/contact.html">고객센터</a>
-        <a href="templates/market/trend.html">시장동향</a>
-        <a href="templates/property/favorite.html">관심매물</a>
+    </a>
 
+    <nav>
+        <div class="has-dropdown">
+            <a href="templates/property/favorite.html"><i class="ti ti-heart"></i>관심매물<i class="ti ti-chevron-down chevron"></i></a>
+            <div class="dropdown">
+                <a href="#">None</a>
+                <a href="#">None</a>
+            </div>
+        </div>
+        <div class="has-dropdown">
+            <a href="templates/market/trend.html"><i class="ti ti-chart-line"></i>시장동향<i class="ti ti-chevron-down chevron"></i></a>
+            <div class="dropdown">
+                <a href="#">None</a>
+                <a href="#">None</a>
+            </div>
+        </div>
     </nav>
+
+    <div class="auth">
+        <a href="templates/support/contact.html" class="support"><i class="ti ti-headset"></i>고객센터</a>
+        <a href="templates/member/login.html" class="login">로그인</a>
+        <a href="templates/member/signup.html" class="signup">회원가입</a>
+    </div>
 </header>
 
 <main>
