@@ -1,0 +1,750 @@
+/* ==================================================
+   register.css
+   집찾GO — 매물 등록 페이지 전용 스타일
+   - 색상/여백 토큰은 common.css를 그대로 계승
+   - --tag : 부동산 창문에 붙는 종이 매물표에서 가져온 강조색
+   - 시그니처 요소: 실시간으로 채워지는 종이 전단지 미리보기
+================================================== */
+
+:root{
+  --tag:#FFB020;
+  --tag-dark:#B9720A;
+  --paper:#FFFFFF;
+  --line:#E3E9F3;
+  --line-strong:#CBD8EA;
+  --mono: "Space Mono", "Pretendard", monospace;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 선택 영역 색상까지 브랜드 톤으로 */
+::selection{ background:rgba(30,136,255,0.18); color:var(--dark); }
+
+/* 키보드 포커스는 항상 눈에 보이게 (마우스 클릭 시엔 표시 안 함) */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+.chip:focus-within{
+  outline:2.5px solid var(--primary);
+  outline-offset:2px;
+  border-radius:8px;
+}
+
+/* 텍스트 로고 (이미지 자산이 없어 텍스트로 대체) */
+.logo-text{
+  font-size:26px;
+  font-weight:900;
+  letter-spacing:-0.5px;
+  background:var(--gradient-main);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+.logo-text b{ font-weight:900; }
+.top-nav a.active{ color:#fff; }
+.top-nav a.active::before{ opacity:1; transform:scale(1); }
+
+/* ================= Hero ================= */
+.reg-hero{
+  display:grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap:56px;
+  align-items:center;
+  padding: 18px 4px 64px;
+}
+.eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+  font-weight:800;
+  color:var(--primary);
+  letter-spacing:1px;
+  margin-bottom:16px;
+}
+.eyebrow::before{
+  content:"";
+  width:18px; height:2px;
+  background:var(--gradient-main);
+  border-radius:2px;
+}
+.reg-hero h1{
+  font-size:44px;
+  line-height:1.32;
+  font-weight:900;
+  letter-spacing:-1px;
+  color:var(--dark);
+  margin-bottom:20px;
+}
+.hero-sub{
+  font-size:16px;
+  line-height:1.7;
+  color:var(--gray);
+  max-width:480px;
+  margin-bottom:26px;
+}
+.hero-badges{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:32px;
+}
+.hero-badges span{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:9px 14px;
+  border-radius:999px;
+  background:rgba(30,136,255,0.08);
+  color:var(--primary);
+  font-size:13px;
+  font-weight:800;
+  transition:0.2s var(--ease);
+}
+.hero-badges span:hover{
+  background:rgba(30,136,255,0.14);
+  transform:translateY(-1px);
+}
+.hero-badges span i{ font-size:12px; }
+
+.cta-btn{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:17px 28px;
+  border-radius:999px;
+  background:var(--gradient-main);
+  color:#fff;
+  font-weight:800;
+  font-size:15px;
+  box-shadow:0 18px 34px rgba(30,136,255,0.28);
+  overflow:hidden;
+  transition:0.3s var(--ease);
+}
+.cta-btn i{ transition:transform 0.3s var(--ease); }
+.cta-btn::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(120deg, transparent, rgba(255,255,255,0.35), transparent);
+  transform:translateX(-120%);
+  transition:transform 0.6s var(--ease);
+}
+.cta-btn:hover{ transform:translateY(-3px); box-shadow:0 22px 40px rgba(30,136,255,0.34); }
+.cta-btn:hover i{ transform:translateX(4px); }
+.cta-btn:hover::before{ transform:translateX(120%); }
+.cta-btn:active{ transform:translateY(-1px) scale(0.98); }
+
+/* 부동산 창문 매물표를 오마주한 티저 카드 */
+.flyer-teaser{
+  position:relative;
+  justify-self:center;
+  width:280px;
+  padding:22px 20px 26px;
+  background:var(--paper);
+  border-radius:6px;
+  box-shadow:0 24px 60px rgba(15,23,42,0.16);
+  transform:rotate(-3deg);
+  border:1px solid var(--line);
+  animation:paperSway 7s ease-in-out infinite;
+  transform-origin:top center;
+}
+.flyer-teaser:hover{ animation-play-state:paused; transform:rotate(-1deg) translateY(-2px); }
+.flyer-teaser::before{
+  content:"";
+  position:absolute;
+  top:-10px; left:0; right:0; height:22px;
+  pointer-events:none;
+  background:
+    linear-gradient(rgba(255,255,255,0.6), rgba(255,255,255,0.6)) no-repeat 18px 0 / 46px 22px,
+    linear-gradient(rgba(255,255,255,0.6), rgba(255,255,255,0.6)) no-repeat calc(100% - 64px) 0 / 46px 22px;
+  filter:drop-shadow(0 4px 6px rgba(0,0,0,0.08));
+}
+.flyer-teaser::after{
+  content:"";
+  position:absolute;
+  left:14px; right:14px; bottom:10px; height:0;
+  border-top:1.5px dashed var(--line-strong);
+}
+.flyer-teaser .fy-badge{
+  display:inline-block;
+  padding:4px 10px;
+  font-size:11px;
+  font-weight:800;
+  color:#fff;
+  background:var(--dark);
+  border-radius:4px;
+  margin-bottom:12px;
+}
+.flyer-teaser .fy-price{
+  font-family:var(--mono);
+  font-size:26px;
+  font-weight:700;
+  color:var(--tag-dark);
+  background:linear-gradient(180deg, transparent 60%, rgba(255,176,32,0.35) 60%);
+  display:inline-block;
+  margin-bottom:10px;
+}
+.flyer-teaser .fy-addr{ font-size:14px; font-weight:700; color:var(--text); margin-bottom:6px; }
+.flyer-teaser .fy-spec{ font-family:var(--mono); font-size:12px; color:var(--gray); }
+.flyer-teaser .fy-watermark{
+  position:absolute; right:14px; bottom:14px;
+  font-size:11px; font-weight:800; color:rgba(15,23,42,0.18);
+  letter-spacing:1px; transform:rotate(-8deg);
+}
+
+@keyframes paperSway{
+  0%, 100%{ transform:rotate(-3deg); }
+  50%{ transform:rotate(-1.4deg) translateY(-3px); }
+}
+
+/* ================= Steps nav ================= */
+.steps-nav{
+  position:relative;
+  display:flex;
+  gap:6px;
+  padding:8px;
+  margin: 0 auto 40px;
+  background:rgba(255,255,255,0.7);
+  border:1px solid var(--line);
+  border-radius:18px;
+  box-shadow:var(--shadow-soft);
+  max-width:760px;
+}
+.step-tab{
+  position:relative;
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:14px 8px;
+  border:0;
+  background:transparent;
+  border-radius:12px;
+  font-size:14px;
+  font-weight:800;
+  color:var(--gray);
+  cursor:pointer;
+  transition:0.28s var(--ease);
+}
+.step-tab:hover:not(.active){ color:var(--primary); background:rgba(30,136,255,0.06); }
+.step-tab .num{
+  font-family:var(--mono);
+  font-size:12px;
+  opacity:0.7;
+}
+.step-tab.active{
+  background:var(--gradient-main);
+  color:#fff;
+  box-shadow:0 10px 22px rgba(30,136,255,0.28);
+}
+.step-tab.active .num{ opacity:0.85; }
+.step-tab.done{ color:var(--accent); }
+.step-tab.done .num::after{ content:" ✓"; }
+
+/* ================= Register section ================= */
+.register-section{
+  display:grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap:36px;
+  align-items:flex-start;
+  margin-bottom:70px;
+}
+
+.listing-form{
+  background:var(--paper);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-soft);
+  padding:40px;
+}
+.form-step{ display:none; }
+.form-step.active{ display:block; animation:fadeUp .45s var(--ease); }
+@keyframes fadeUp{
+  from{ opacity:0; transform:translateY(14px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+
+.form-step h2{
+  font-size:20px;
+  font-weight:900;
+  color:var(--dark);
+  margin-bottom:6px;
+}
+.form-step .step-desc{
+  font-size:13px;
+  color:var(--gray);
+  margin-bottom:26px;
+}
+
+.field{ margin-bottom:22px; }
+.field label{
+  display:block;
+  font-size:13px;
+  font-weight:800;
+  color:var(--text);
+  margin-bottom:8px;
+}
+.field label.optional::after{
+  content:"선택";
+  margin-left:6px;
+  font-size:11px;
+  font-weight:700;
+  color:var(--gray);
+  background:var(--light);
+  padding:2px 7px;
+  border-radius:999px;
+}
+.field input[required] + label,
+.field label:has(+ input[required])::after{
+  content:"*";
+  color:var(--primary);
+  margin-left:3px;
+}
+.field input[type="text"],
+.field input[type="number"],
+.field input[type="tel"],
+.field select{
+  width:100%;
+  padding:13px 14px;
+  border-radius:12px;
+  border:1.5px solid var(--line);
+  font-size:14px;
+  background:var(--light);
+  transition:0.2s var(--ease);
+}
+.field input::placeholder{ color:#A6B2C6; }
+.field input:hover,
+.field select:hover{ border-color:var(--line-strong); }
+.field input:focus,
+.field select:focus{
+  outline:none;
+  border-color:var(--primary);
+  background:#fff;
+  box-shadow:0 0 0 4px rgba(30,136,255,0.12);
+}
+.field input:disabled{ background:#EEF1F6; color:#A6B2C6; cursor:not-allowed; }
+/* 숫자 입력 스핀 버튼 제거 (가격류 입력을 텍스트처럼 다루기 위함) */
+.field input[type=number]::-webkit-inner-spin-button,
+.field input[type=number]::-webkit-outer-spin-button{
+  -webkit-appearance:none; margin:0;
+}
+.field input[type=number]{ -moz-appearance:textfield; }
+
+.field-row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+}
+
+.chip-group{ display:flex; flex-wrap:wrap; gap:10px; }
+.chip{
+  position:relative;
+  padding:11px 18px;
+  border-radius:999px;
+  border:1.5px solid var(--line);
+  font-size:13px;
+  font-weight:700;
+  color:var(--gray);
+  cursor:pointer;
+  background:#fff;
+  transition:0.2s var(--ease);
+}
+.chip:hover{ border-color:var(--primary); color:var(--primary); }
+.chip input{ position:absolute; opacity:0; width:1px; height:1px; }
+.chip.selected{
+  border-color:transparent;
+  background:var(--gradient-main);
+  color:#fff;
+}
+.chip.selected:hover{ color:#fff; }
+
+.tag-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+}
+@media (max-width:520px){ .tag-grid{ grid-template-columns:repeat(2,1fr);} }
+
+.upload-box{
+  display:block;
+  border:2px dashed var(--line);
+  border-radius:16px;
+  padding:34px 20px;
+  text-align:center;
+  cursor:pointer;
+  color:var(--gray);
+  transition:0.2s var(--ease);
+}
+.upload-box:hover,
+.upload-box.dragover{
+  border-color:var(--primary);
+  background:rgba(30,136,255,0.05);
+  color:var(--primary);
+}
+.upload-box i{
+  font-size:28px;
+  color:var(--primary);
+  margin-bottom:10px;
+  display:block;
+  transition:transform 0.25s var(--ease);
+}
+.upload-box:hover i{ transform:translateY(-3px); }
+
+.thumb-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  margin-top:16px;
+}
+.thumb{
+  position:relative;
+  aspect-ratio:1;
+  border-radius:10px;
+  overflow:hidden;
+  border:2px solid transparent;
+}
+.thumb img{
+  width:100%; height:100%;
+  object-fit:cover;
+  display:block;
+  transition:transform 0.3s var(--ease);
+}
+.thumb:hover img{ transform:scale(1.06); }
+.thumb.main{ border-color:var(--accent); }
+.thumb .main-tag{
+  position:absolute; top:4px; left:4px;
+  background:var(--accent); color:#fff;
+  font-size:10px; font-weight:800;
+  padding:2px 6px; border-radius:6px;
+}
+
+.form-nav{
+  display:flex;
+  justify-content:space-between;
+  margin-top:32px;
+  padding-top:24px;
+  border-top:1px solid var(--line);
+}
+.btn-ghost, .btn-primary{
+  padding:14px 26px;
+  border-radius:999px;
+  font-weight:800;
+  font-size:14px;
+  border:0;
+  cursor:pointer;
+  transition:0.25s var(--ease);
+}
+.btn-ghost{
+  background:var(--light);
+  color:var(--gray);
+}
+.btn-ghost:hover{ background:#e9eff8; color:var(--text); }
+.btn-ghost:active{ transform:scale(0.97); }
+.btn-primary{
+  background:var(--gradient-main);
+  color:#fff;
+  margin-left:auto;
+  box-shadow:0 12px 26px rgba(30,136,255,0.24);
+}
+.btn-primary:hover{ transform:translateY(-2px); box-shadow:0 16px 30px rgba(30,136,255,0.3); }
+.btn-primary:active{ transform:translateY(0) scale(0.98); }
+.btn-primary:disabled{ opacity:0.5; cursor:not-allowed; transform:none; box-shadow:none; }
+
+.agree-row{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  font-size:13px;
+  color:var(--gray);
+  padding:14px;
+  background:var(--light);
+  border-radius:12px;
+  margin-bottom:20px;
+  transition:0.2s ease;
+}
+.agree-row:has(input:checked){ background:rgba(23,212,179,0.1); color:var(--text); }
+.agree-row input{ margin-top:3px; accent-color:var(--primary); }
+
+/* ================= Live Flyer Preview (signature element) ================= */
+.preview-flyer{
+  position:sticky;
+  top:130px;
+}
+.preview-flyer .preview-label{
+  font-size:12px;
+  font-weight:800;
+  color:var(--gray);
+  margin-bottom:12px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.flyer-card{
+  position:relative;
+  background:var(--paper);
+  border-radius:8px;
+  padding:26px 24px 24px;
+  box-shadow:0 26px 60px rgba(15,23,42,0.16);
+  transform:rotate(1.2deg);
+  border:1px solid var(--line);
+  animation:paperSwayAlt 8s ease-in-out infinite;
+  transform-origin:top center;
+  transition:box-shadow 0.3s ease;
+}
+.preview-flyer:hover .flyer-card{
+  animation-play-state:paused;
+  transform:rotate(0.3deg) translateY(-2px);
+  box-shadow:0 30px 70px rgba(15,23,42,0.2);
+}
+.flyer-card::before{
+  content:"";
+  position:absolute;
+  top:-9px; left:0; right:0; height:20px;
+  pointer-events:none;
+  background:
+    linear-gradient(rgba(255,255,255,0.65), rgba(255,255,255,0.65)) no-repeat 22px 0 / 44px 20px,
+    linear-gradient(rgba(255,255,255,0.65), rgba(255,255,255,0.65)) no-repeat calc(100% - 66px) 0 / 44px 20px;
+  filter:drop-shadow(0 4px 6px rgba(0,0,0,0.08));
+}
+.flyer-card::after{
+  content:"";
+  position:absolute;
+  left:16px; right:16px; bottom:52px; height:0;
+  border-top:1.5px dashed var(--line-strong);
+}
+
+@keyframes paperSwayAlt{
+  0%, 100%{ transform:rotate(1.2deg); }
+  50%{ transform:rotate(0.2deg) translateY(-3px); }
+}
+
+.flyer-photo{
+  width:100%;
+  aspect-ratio:4/3;
+  border-radius:6px;
+  background:var(--light) center/cover no-repeat;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#B9C3D4;
+  font-size:13px;
+  text-align:center;
+  margin-bottom:16px;
+  border:1px dashed var(--line);
+  transition:background 0.25s ease;
+}
+.flyer-deal{
+  display:inline-block;
+  padding:4px 10px;
+  font-size:11px;
+  font-weight:800;
+  color:#fff;
+  background:var(--dark);
+  border-radius:4px;
+  margin-bottom:10px;
+  transition:0.2s ease;
+}
+.flyer-price{
+  font-family:var(--mono);
+  font-size:28px;
+  font-weight:700;
+  color:var(--tag-dark);
+  background:linear-gradient(180deg, transparent 62%, rgba(255,176,32,0.4) 62%);
+  display:inline-block;
+  margin-bottom:12px;
+  transition:0.15s ease;
+}
+.flyer-addr{
+  font-size:15px;
+  font-weight:800;
+  color:var(--text);
+  margin-bottom:10px;
+  min-height:20px;
+}
+.flyer-spec{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px 14px;
+  font-family:var(--mono);
+  font-size:12px;
+  color:var(--gray);
+  padding-bottom:14px;
+  margin-bottom:14px;
+  border-bottom:1px dashed var(--line);
+}
+.flyer-tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  min-height:0;
+}
+.flyer-tags:empty{ display:none; }
+.flyer-tags span{
+  font-size:11px;
+  font-weight:700;
+  padding:4px 9px;
+  border-radius:999px;
+  background:rgba(23,212,179,0.12);
+  color:#0F9C86;
+  animation:tagPop 0.25s var(--ease);
+}
+@keyframes tagPop{
+  from{ opacity:0; transform:scale(0.85); }
+  to{ opacity:1; transform:scale(1); }
+}
+.flyer-stamp{
+  position:absolute;
+  bottom:20px; right:18px;
+  font-size:10px; font-weight:900;
+  color:rgba(15,23,42,0.15);
+  letter-spacing:1.5px;
+  transform:rotate(-8deg);
+}
+.preview-note{
+  font-size:12px;
+  color:var(--gray);
+  margin-top:14px;
+  line-height:1.6;
+  padding:0 4px;
+}
+
+/* ================= Benefits ================= */
+.benefits{ margin-bottom:70px; }
+.section-head{ text-align:center; margin-bottom:36px; }
+.section-head h2{ font-size:28px; font-weight:900; color:var(--dark); margin-bottom:10px; }
+.section-head p{ color:var(--gray); font-size:14px; }
+.benefit-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:22px;
+}
+.benefit-card{
+  background:var(--paper);
+  border-radius:20px;
+  padding:30px 26px;
+  box-shadow:0 14px 34px rgba(15,23,42,0.06);
+  border:1px solid var(--line);
+  transition:0.3s var(--ease);
+}
+.benefit-card:hover{
+  transform:translateY(-6px);
+  box-shadow:0 22px 44px rgba(15,23,42,0.1);
+  border-color:transparent;
+}
+.benefit-card i{
+  width:46px; height:46px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:14px;
+  background:var(--gradient-main);
+  color:#fff;
+  font-size:18px;
+  margin-bottom:16px;
+  transition:transform 0.3s var(--ease);
+}
+.benefit-card:hover i{ transform:rotate(-6deg) scale(1.06); }
+.benefit-card h3{ font-size:16px; font-weight:800; margin-bottom:8px; color:var(--dark); }
+.benefit-card p{ font-size:13px; color:var(--gray); line-height:1.6; }
+
+/* ================= FAQ ================= */
+.faq{ margin-bottom:70px; max-width:820px; margin-left:auto; margin-right:auto; }
+.faq details{
+  background:var(--paper);
+  border-radius:16px;
+  padding:18px 22px;
+  margin-bottom:10px;
+  border:1px solid var(--line);
+  transition:border-color 0.2s ease;
+}
+.faq details:hover{ border-color:var(--line-strong); }
+.faq details[open]{ border-color:var(--primary); }
+.faq summary{
+  cursor:pointer;
+  font-weight:800;
+  font-size:14px;
+  color:var(--text);
+  list-style:none;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.faq summary::-webkit-details-marker{ display:none; }
+.faq summary::after{
+  content:"+";
+  font-size:20px;
+  color:var(--primary);
+  transition:transform 0.25s var(--ease);
+}
+.faq details[open] summary::after{ transform:rotate(45deg); }
+.faq p{
+  font-size:13px;
+  color:var(--gray);
+  margin-top:12px;
+  line-height:1.7;
+  animation:fadeUp 0.3s var(--ease);
+}
+
+/* ================= Final CTA ================= */
+.final-cta{
+  position:relative;
+  background:linear-gradient(135deg,#0F172A,#172033);
+  border-radius:32px;
+  padding:50px 40px;
+  text-align:center;
+  color:#fff;
+  margin-bottom:50px;
+  overflow:hidden;
+}
+.final-cta::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:radial-gradient(circle at 15% 20%, rgba(30,136,255,0.25), transparent 45%),
+             radial-gradient(circle at 85% 80%, rgba(23,212,179,0.2), transparent 45%);
+  pointer-events:none;
+}
+.final-cta h2{ position:relative; font-size:26px; font-weight:900; margin-bottom:12px; }
+.final-cta p{ position:relative; color:#CBD5E1; font-size:14px; margin-bottom:24px; }
+.final-cta .cta-btn{ position:relative; }
+
+/* ================= Mobile ================= */
+@media (max-width:900px){
+  .reg-hero{ grid-template-columns:1fr; gap:34px; text-align:center; }
+  .hero-sub{ margin-left:auto; margin-right:auto; }
+  .hero-badges{ justify-content:center; }
+  .flyer-teaser{ display:none; }
+  .register-section{ grid-template-columns:1fr; }
+  .preview-flyer{ position:static; }
+  .listing-form{ padding:26px; }
+  .field-row{ grid-template-columns:1fr; }
+  .benefit-grid{ grid-template-columns:1fr; }
+  .reg-hero h1{ font-size:32px; }
+  .steps-nav{
+    overflow-x:auto;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+  }
+  .steps-nav::-webkit-scrollbar{ display:none; }
+  .step-tab span:not(.num){ display:none; }
+}
+
+/* 모션에 민감한 사용자를 위한 배려 */
+@media (prefers-reduced-motion: reduce){
+  .flyer-teaser,
+  .flyer-card,
+  .form-step.active,
+  .flyer-tags span,
+  .faq p{
+    animation:none !important;
+  }
+  .cta-btn,
+  .cta-btn i,
+  .cta-btn::before,
+  .btn-primary,
+  .benefit-card,
+  .benefit-card i,
+  .thumb img{
+    transition:none !important;
+  }
+}
