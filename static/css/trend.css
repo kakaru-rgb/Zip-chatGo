@@ -42,7 +42,7 @@ body {
 }
 
 .logo img {
-  height: 100px;
+  height: 42px;
   display: block;
 }
 
@@ -588,7 +588,7 @@ body {
 .trend-footer {
   width: min(1500px, 92%);
   margin: 0 auto 34px;
-  padding: 28px 30px 20px;
+  padding: 10px 23px 20px;
 
   border-radius: 32px;
   background: linear-gradient(135deg, #0F172A, #172033);
@@ -698,7 +698,7 @@ body {
   }
 
   .footer-brand img {
-    height: 46px;
+    height: 70px;
   }
 
   .footer-brand h2 {
@@ -737,4 +737,142 @@ body {
     padding-left: 0;
     border-left: 0;
   }
+}
+/* ==========================
+   클릭 가능한 카드 효과
+========================== */
+
+.link-card,
+.link-panel,
+.issue-card-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.link-card {
+  display: block;
+  position: relative;
+}
+
+.card-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 18px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #1E88FF;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: .25s ease;
+}
+
+.link-card:hover .card-more {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.link-panel {
+  display: flex;
+}
+
+.link-panel:hover {
+  transform: translateY(-5px);
+}
+
+.issue-card-link {
+  display: block;
+  padding: 30px;
+  border-radius: 26px;
+  background: white;
+  border: 1px solid rgba(226, 232, 240, .9);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, .07);
+  transition: .28s ease;
+}
+
+.issue-card-link:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 28px 60px rgba(15, 23, 42, .12);
+}
+
+.issue-card-link > i {
+  width: 52px;
+  height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(30, 136, 255, .13), rgba(23, 212, 179, .16));
+  color: #1E88FF;
+  font-size: 28px;
+  margin-bottom: 18px;
+}
+
+.issue-card-link h3 {
+  font-size: 21px;
+  margin-bottom: 10px;
+  color: #0F172A;
+}
+
+.issue-card-link p {
+  color: #64748B;
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+.issue-card-link span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 18px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #1E88FF;
+}
+
+@media (max-width: 768px) {
+  .link-panel {
+    display: block;
+  }
+
+  .card-more {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* ==========================
+   지역별 동향 링크 패널
+========================== */
+
+.region-flow-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  position: relative;
+  transition: .3s ease;
+}
+
+.region-flow-link:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 26px 60px rgba(30, 136, 255, .16);
+}
+
+.region-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 20px;
+  color: #1E88FF;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.region-more i {
+  transition: .25s;
+}
+
+.region-flow-link:hover .region-more i {
+  transform: translateX(4px);
 }
