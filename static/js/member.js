@@ -56,7 +56,7 @@ function handleGuestLogin() {
   showMessage(message, "시연용 게스트 계정으로 로그인되었습니다.", "success");
 
   setTimeout(() => {
-    location.href = "/index.html";
+    location.href = "../../index.html";
   }, 600);
 }
 
@@ -174,7 +174,7 @@ function handleSignup(e) {
   clearSignupForm();
 
   setTimeout(() => {
-    location.href = "/templates/member/login.html";
+    location.href = "./login.html";
   }, 900);
 }
 
@@ -225,7 +225,7 @@ function handleLogin(e) {
   clearLoginForm();
 
   setTimeout(() => {
-    location.href = "/index.html";
+    location.href = "../../index.html";
   }, 800);
 }
 

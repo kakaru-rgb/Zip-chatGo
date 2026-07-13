@@ -3,11 +3,13 @@
 // login.html, signup.html에서 동일하게 사용
 // ==================================================
 
+const AUTH_SITE_ROOT_URL = new URL("../../", document.currentScript.src);
+
 document.addEventListener('DOMContentLoaded', () => {
 
   /* ---------- 로그인 후 이동할 목적지 (?redirect=...) ---------- */
   const params = new URLSearchParams(window.location.search);
-  const redirectTarget = params.get('redirect') || '/index.html';
+  const redirectTarget = params.get('redirect') || new URL('index.html', AUTH_SITE_ROOT_URL).href;
 
   function goToRedirectTarget() {
     window.location.href = redirectTarget;

@@ -15,7 +15,7 @@ const conversationButton = document.querySelector(".ai-search-box button");
 function startDemoConversation() {
   const firstMessage = conversationInput?.value.trim();
   if (firstMessage) sessionStorage.setItem("jipchatgoFirstMessage", firstMessage);
-  location.href = "/templates/ai/chat.html";
+  location.href = "./templates/ai/chat.html";
 }
 
 conversationButton?.addEventListener("click", startDemoConversation);
