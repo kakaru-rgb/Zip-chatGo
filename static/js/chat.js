@@ -104,7 +104,7 @@ function showResult() {
   "동대문구"] : ["송파구",
   "강동구",
   "성남시"];
-  const cards = resultRegions.map((region, index) => `<div class="result-card"><span>추천 ${index + 1}</span><h3>${region}</h3><ul><li>${index ? "예산 균형" : "조건 적합도 높음"}</li><li>교통 접근 우수</li><li>생활 인프라</li></ul><a href="/templates/market/region.html">지역 데이터 보기 <i class="ti ti-arrow-right"></i></a></div>`).join("");
+  const cards = resultRegions.map((region, index) => `<div class="result-card"><span>추천 ${index + 1}</span><h3>${region}</h3><ul><li>${index ? "예산 균형" : "조건 적합도 높음"}</li><li>교통 접근 우수</li><li>생활 인프라</li></ul><a href="../market/region.html">지역 데이터 보기 <i class="ti ti-arrow-right"></i></a></div>`).join("");
   addMessage(`말씀해 주신 내용을 정리했어요.\n“${conditions.need}”을 가장 중요하게 보고, ${conditions.budget} 범위에서 살펴볼게요.`, "assistant", cards);
   replies.innerHTML = `<button type="button" id="moreCondition">조건을 더 이야기할게</button><button type="button" id="restartResult">처음부터 다시 찾기</button>`;
   $("#restartResult").addEventListener("click", resetChat);

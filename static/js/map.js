@@ -45,7 +45,7 @@ loadProperties();
 
 async function loadProperties() {
   try {
-    const res = await fetch("/static/js/properties.json");
+    const res = await fetch("../../static/js/properties.json");
     const data = await res.json();
 
     allProperties = data
