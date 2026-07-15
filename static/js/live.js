@@ -38,8 +38,9 @@ const recommendedHomes = [
 if (window.L && document.getElementById("liveMap")) {
   liveMap = L.map("liveMap", { zoomControl: false }).setView([37.5446, 127.0556], 15);
   L.control.zoom({ position: "bottomright" }).addTo(liveMap);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
+  // L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", 
+  L.tileLayer("https://",
+    { maxZoom: 19,
     attribution: "&copy; OpenStreetMap contributors"
   }).addTo(liveMap);
 

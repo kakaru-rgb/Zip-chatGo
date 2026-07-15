@@ -1,0 +1,522 @@
+/* ===========================
+   Map Page Layout
+=========================== */
+
+body {
+  background: var(--light);
+  overflow: hidden;
+}
+
+main {
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  height: calc(100vh - 60px);
+}
+
+aside {
+  grid-area: 1 / 1;
+  align-self: start;
+  justify-self: start;
+  z-index: 10;
+
+  width: 320px;
+  max-height: 100%;
+
+  background: rgba(255, 255, 255, 0.92);
+  border-right: 1px solid rgba(30, 136, 255, 0.12);
+  overflow-y: auto;
+  box-shadow: 10px 0 30px rgba(17, 45, 78, 0.08);
+}
+
+#map {
+  grid-area: 1 / 1;
+  z-index: 1;
+
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ===========================
+   Map Header
+=========================== */
+
+header {
+  position: relative;
+  z-index: 20;
+
+  height: 60px;
+  padding: 0 24px;
+
+  display: flex;
+  align-items: center;
+
+  background: var(--white);
+  border-bottom: 1px solid rgba(30, 136, 255, 0.12);
+  box-shadow: 0 6px 20px rgba(17, 45, 78, 0.06);
+}
+
+header h1 {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--primary);
+}
+
+/* ===========================
+   Search / Filter
+=========================== */
+
+.search-box {
+  display: flex;
+  gap: 8px;
+  padding: 16px;
+}
+
+.search-box input {
+  flex: 1;
+  padding: 13px 14px;
+
+  border: 1px solid rgba(30, 136, 255, 0.18);
+  border-radius: 14px;
+
+  font-size: 14px;
+  color: var(--text);
+  background: var(--white);
+  outline: none;
+}
+
+.search-box input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(30, 136, 255, 0.12);
+}
+
+.search-box button {
+  padding: 0 18px;
+
+  border: none;
+  border-radius: 14px;
+
+  background: var(--gradient-main);
+  color: var(--white);
+  font-weight: 900;
+
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(30, 136, 255, 0.22);
+}
+
+.filter-box {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+.filter-box select {
+  flex: 1;
+  padding: 11px 12px;
+
+  border: 1px solid rgba(30, 136, 255, 0.16);
+  border-radius: 14px;
+
+  background: var(--white);
+  color: var(--text);
+  font-weight: 700;
+  outline: none;
+}
+
+/* ===========================
+   Result List
+=========================== */
+
+.result-header {
+  padding: 13px 16px;
+
+  border-top: 1px solid rgba(30, 136, 255, 0.1);
+  border-bottom: 1px solid rgba(30, 136, 255, 0.1);
+
+  background: linear-gradient(
+    135deg,
+    rgba(30, 136, 255, 0.08),
+    rgba(23, 212, 179, 0.08)
+  );
+
+  color: var(--text);
+  font-weight: 800;
+}
+
+.result-header strong {
+  color: var(--primary);
+}
+
+.property-list {
+  padding: 8px;
+}
+
+.property-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+
+  border-radius: 18px;
+  cursor: pointer;
+  transition: 0.22s ease;
+}
+
+.property-card:hover {
+  background: rgba(30, 136, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.property-card img {
+  width: 88px;
+  height: 72px;
+
+  object-fit: cover;
+  flex-shrink: 0;
+
+  border-radius: 14px;
+  background: #eef2f7;
+}
+
+.property-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.property-title {
+  margin-bottom: 4px;
+
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 900;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.property-price {
+  margin-bottom: 4px;
+  color: var(--primary);
+  font-weight: 900;
+}
+
+.property-meta {
+  color: var(--gray);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* ===========================
+   Property Cluster Marker
+   개별 물건 밀집 시 표시
+=========================== */
+
+.cluster-marker {
+  position: relative;
+  width: 70px;
+  height: 70px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding-top: 16px;
+
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--white);
+  clip-path: polygon(
+    50% 0,
+    100% 34%,
+    89% 34%,
+    89% 100%,
+    11% 100%,
+    11% 34%,
+    0 34%
+  );
+
+  filter: drop-shadow(0 10px 12px rgba(30, 136, 255, 0.28));
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.cluster-marker::before {
+  position: absolute;
+  inset: 4px;
+  z-index: -1;
+
+  background: var(--gradient-main);
+  clip-path: inherit;
+  content: "";
+}
+
+.cluster-marker:hover {
+  transform: scale(1.06);
+}
+
+.cluster-count {
+  position: relative;
+  z-index: 1;
+
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.cluster-label {
+  position: relative;
+  z-index: 1;
+
+  margin-top: 3px;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.cluster-size {
+  position: relative;
+  z-index: 1;
+
+  margin-top: 3px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* ===========================
+   Region Marker
+   시도 / 시군구 / 동 공통
+=========================== */
+
+.region-marker {
+  min-width: 88px;
+  padding: 8px 12px 9px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  border: 2px solid var(--primary);
+  border-radius: 19px;
+
+  background: var(--white);
+  color: var(--text);
+
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.16),
+    0 1px 3px rgba(30, 136, 255, 0.12);
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.region-marker:hover {
+  transform: translateY(-2px);
+  background: #f7fbff;
+  box-shadow:
+    0 8px 20px rgba(30, 136, 255, 0.22),
+    0 2px 6px rgba(15, 23, 42, 0.12);
+}
+
+/* 시도 단위 */
+
+.region-marker.sido {
+  min-width: 100px;
+}
+
+/* 시군구 단위 */
+
+.region-marker.sigungu {
+  min-width: 108px;
+}
+
+/* 동 단위 */
+
+.region-marker.dong {
+  min-width: 84px;
+}
+
+/* 지역명 */
+
+.region-name {
+  max-width: 140px;
+  margin-bottom: 5px;
+
+  color: #52627a;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.15;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 매 + 가격 */
+
+.region-price {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 3px;
+
+  margin-top: 0;
+  line-height: 1;
+}
+
+.region-price .deal-type {
+  color: #555555;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.region-price .deal-price {
+  color: var(--primary);
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* 기존 코드에 건수가 남아 있어도 숨김 */
+
+.region-count {
+  display: block;
+  margin-top: 5px;
+
+  color: #7a8799;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* ===========================
+   Individual Property Marker
+=========================== */
+
+.property-marker {
+  position: relative;
+  width: 72px;
+  height: 68px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding-top: 17px;
+
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--white);
+  clip-path: polygon(
+    50% 0,
+    100% 34%,
+    89% 34%,
+    89% 100%,
+    11% 100%,
+    11% 34%,
+    0 34%
+  );
+
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+
+  filter: drop-shadow(0 9px 11px rgba(30, 136, 255, 0.28));
+}
+
+.property-marker::before {
+  position: absolute;
+  inset: 4px;
+  z-index: -1;
+
+  background: var(--gradient-main);
+  clip-path: inherit;
+  content: "";
+}
+
+.property-area {
+  position: relative;
+  z-index: 1;
+
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.property-marker-price {
+  margin-top: 4px;
+
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+
+  position: relative;
+  z-index: 1;
+
+  color: var(--white);
+  line-height: 1;
+}
+
+.property-marker-price .deal-type {
+  display: none;
+
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.property-marker-price .deal-price {
+  display: inline-block;
+
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* 기존 price-marker를 다른 코드에서 사용할 경우 */
+
+.price-marker {
+  padding: 7px 13px;
+
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+
+  background: var(--gradient-main);
+  color: var(--white);
+
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+
+  box-shadow: 0 8px 18px rgba(30, 136, 255, 0.28);
+}
+
+/* ===========================
+   Notice
+=========================== */
+
+.notice {
+  margin: 8px;
+  padding: 11px 13px;
+
+  border-radius: 14px;
+  background: rgba(30, 136, 255, 0.08);
+
+  color: var(--gray);
+  font-size: 13px;
+  line-height: 1.4;
+}
