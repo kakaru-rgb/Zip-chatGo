@@ -40,15 +40,14 @@
         <span class="viewer-count"><i class="ti ti-eye"></i> 1,248</span>
       </div>
 
-      <aside class="camera-panel" aria-label="내 카메라 미리보기">
-        <div class="camera-title"><span class="live-dot"></span> 내 카메라 <button id="cameraToggle" type="button">연결</button></div>
-        <video id="cameraPreview" class="camera-preview" autoplay muted playsinline></video>
-        <div id="cameraEmpty" class="camera-empty"><i class="ti ti-camera"></i><span>카메라를 연결해 보세요</span></div>
+      <aside class="camera-panel" aria-label="중개사 소개 영상">
+        <div class="camera-title"><span class="live-dot"></span> 중개사 소개</div>
+        <iframe id="cameraPreview" class="camera-preview" src="https://www.youtube.com/embed/7XJQvG9VZ2M?autoplay=1&mute=1&loop=1&playlist=7XJQvG9VZ2M&controls=1&rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
       </aside>
 
       <div class="broadcast-copy">
         <span class="now-badge"><i></i> LIVE NOW</span>
-        <h2>성수동, 출퇴근과 생활을<br>모두 잡은 추천 지역입니다.</h2>
+        <h2>서울 지역, 출퇴근과 생활을<br>모두 잡은 추천 지역입니다.</h2>
         <p id="propertyInfo">AI가 분석한 첫 번째 추천 매물 · 성수 리버뷰 84㎡</p>
       </div>
 
@@ -72,7 +71,7 @@
   </footer>
 
   <script src="../../static/js/common.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=m4rxvrgqbo"></script>
   <script src="../../static/js/live.js"></script>
 </body>
 </html>
