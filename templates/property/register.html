@@ -559,6 +559,8 @@
 
   // ---------- VWorld 연동: 지오코딩 / 검색 / 지도 / 학군 자동 매칭 ----------
   const VWORLD_KEY = 'CE67C94F-A420-3F52-AFD2-8D06A4E71F66';
+  // VWorld 콘솔에 등록한 도메인과 실제 접속 도메인이 일치해야 요청이 통과돼요.
+  const VWORLD_DOMAIN = window.location.hostname;
   // VWorld API를 브라우저에서 직접 호출하면 CORS가 막혀서, 배포 시엔 아래 두 URL을
   // 본인 서버(또는 Cloudflare Worker 등) 경유 프록시 주소로 바꿔줘야 할 수 있어요.
   const VWORLD_SEARCH_URL = 'https://api.vworld.kr/req/search';
@@ -701,10 +703,14 @@
   async function searchAddress(query) {
     const url = `${VWORLD_SEARCH_URL}?service=search&request=search&version=2.0&crs=EPSG:4326`
       + `&query=${encodeURIComponent(query)}&type=address&category=road&format=json&errorformat=json`
-      + `&size=5&page=1&key=${VWORLD_KEY}`;
+      + `&size=5&page=1&key=${VWORLD_KEY}&domain=${VWORLD_DOMAIN}`;
     try {
       const res = await fetch(url);
       const data = await res.json();
+      if (data?.response?.status !== 'OK') {
+        console.warn('[VWorld 검색 API] 정상 응답이 아니에요:', data?.response?.status, data);
+        return [];
+      }
       const items = data?.response?.result?.items || [];
       return items.map(item => ({
         text: item.address.road || item.address.parcel || item.title,
@@ -712,7 +718,7 @@
         lat: Number(item.point.y)
       }));
     } catch (err) {
-      console.error('주소 검색 실패', err);
+      console.error('[VWorld 검색 API] 요청 자체가 실패했어요 (네트워크/CORS 확인):', err);
       return [];
     }
   }
@@ -762,14 +768,15 @@
   async function geocodeAddress(addr) {
     for (const type of ['road', 'parcel']) {
       const url = `${VWORLD_ADDRESS_URL}?service=address&request=getcoord&version=2.0`
-        + `&crs=epsg:4326&address=${encodeURIComponent(addr)}&type=${type}&format=json&key=${VWORLD_KEY}`;
+        + `&crs=epsg:4326&address=${encodeURIComponent(addr)}&type=${type}&format=json&key=${VWORLD_KEY}&domain=${VWORLD_DOMAIN}`;
       try {
         const res = await fetch(url);
         const data = await res.json();
         const point = data?.response?.result?.point;
         if (point) return { lng: Number(point.x), lat: Number(point.y) };
+        console.warn(`[VWorld 지오코더 API] type=${type} 결과 없음:`, data?.response?.status, data);
       } catch (err) {
-        console.error('지오코딩 실패', err);
+        console.error('[VWorld 지오코더 API] 요청 자체가 실패했어요 (네트워크/CORS 확인):', err);
       }
     }
     return null;
