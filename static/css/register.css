@@ -156,6 +156,14 @@ select:focus-visible,
   left:28px; right:28px; bottom:20px; height:0;
   border-top:3px dashed var(--line-strong);
 }
+.flyer-teaser .fy-photo{
+  width:100%;
+  aspect-ratio:16/10;
+  border-radius:10px;
+  background:url("../images/register_ex.png") center/cover no-repeat, var(--light);
+  border:1px solid var(--line);
+  margin-bottom:24px;
+}
 .flyer-teaser .fy-badge{
   display:inline-block;
   padding:8px 20px;
@@ -418,6 +426,252 @@ select:focus-visible,
 }
 .chip-custom .chip-remove:hover{ background:rgba(255,255,255,0.4); }
 
+/* ---------- 상세정보 서브섹션 (관리비/옵션/교통/학군) ---------- */
+.subsection-title{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:14px;
+  font-weight:800;
+  color:var(--dark);
+  padding-top:8px;
+  margin-bottom:18px;
+  border-top:1px solid var(--line);
+  padding-top:24px;
+}
+.subsection-title i{ color:var(--primary); font-size:15px; }
+
+/* ---------- 주소 + 위치 확인 (검색 자동완성) ---------- */
+.addr-input-row{
+  position:relative;
+  display:flex;
+  gap:8px;
+}
+.addr-input-row input{ flex:1; }
+.geo-btn{
+  flex-shrink:0;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:0 16px;
+  border-radius:10px;
+  border:1.5px solid var(--line);
+  background:#fff;
+  color:var(--primary);
+  font-weight:800;
+  font-size:12.5px;
+  cursor:pointer;
+  white-space:nowrap;
+  transition:0.2s var(--ease);
+}
+.geo-btn:hover{ border-color:var(--primary); background:rgba(30,136,255,0.05); }
+.geo-btn:active{ transform:scale(0.97); }
+.geo-btn:disabled{ opacity:0.6; cursor:not-allowed; }
+
+.addr-suggest-list{
+  position:absolute;
+  top:calc(100% + 6px);
+  left:0;
+  right:96px;
+  z-index:20;
+  list-style:none;
+  background:#fff;
+  border:1.5px solid var(--line);
+  border-radius:12px;
+  box-shadow:0 18px 40px rgba(15,23,42,0.14);
+  max-height:220px;
+  overflow-y:auto;
+  display:none;
+}
+.addr-suggest-list.show{ display:block; }
+.addr-suggest-list li{
+  padding:11px 14px;
+  font-size:13px;
+  color:var(--text);
+  cursor:pointer;
+  border-bottom:1px solid var(--line);
+}
+.addr-suggest-list li:last-child{ border-bottom:0; }
+.addr-suggest-list li:hover{ background:var(--light); color:var(--primary); }
+
+/* ---------- 자동입력 뱃지 (공용) ---------- */
+.badge-auto{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  font-size:11px;
+  font-weight:800;
+  padding:3px 10px;
+  border-radius:999px;
+  background:rgba(23,212,179,0.14);
+  color:#0F9C86;
+  vertical-align:middle;
+  margin-left:6px;
+}
+.badge-auto::before{
+  content:"";
+  width:6px; height:6px;
+  border-radius:50%;
+  background:#17D4B3;
+}
+
+.map-preview{
+  position:relative;
+  border-radius:14px;
+  border:1.5px dashed var(--line);
+  background:
+    linear-gradient(90deg, rgba(30,136,255,0.05) 1px, transparent 1px) 0 0/24px 24px,
+    linear-gradient(0deg, rgba(30,136,255,0.05) 1px, transparent 1px) 0 0/24px 24px,
+    var(--light);
+  min-height:220px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  overflow:hidden;
+  transition:0.25s var(--ease);
+}
+.map-preview.located{ border-style:solid; border-color:var(--line-strong); background-color:#fff; }
+.map-placeholder{ padding:22px; color:var(--gray); position:relative; z-index:1; }
+.map-preview.located .map-placeholder{ display:none; }
+.map-placeholder i{ font-size:26px; color:#B9C3D4; margin-bottom:10px; display:block; }
+.map-placeholder p{ font-size:12.5px; line-height:1.6; }
+.vworld-map{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:none;
+}
+.map-preview.located .vworld-map{ display:block; }
+.map-note{
+  font-size:11.5px;
+  color:var(--gray);
+  margin-top:8px;
+  line-height:1.5;
+}
+
+/* ---------- 학군정보: 자동입력 결과 패널 ---------- */
+.school-auto-panel{
+  border-radius:14px;
+  border:1.5px solid var(--line);
+  background:var(--light);
+  overflow:hidden;
+}
+.school-auto-empty{
+  padding:30px 22px;
+  text-align:center;
+  color:var(--gray);
+}
+.school-auto-empty i{ font-size:22px; color:#B9C3D4; margin-bottom:10px; display:block; }
+.school-auto-empty p{ font-size:12.5px; line-height:1.6; }
+.school-auto-row{
+  padding:16px 18px;
+  border-bottom:1px solid var(--line);
+  background:#fff;
+}
+.school-auto-row:last-child{ border-bottom:0; }
+.school-auto-level{
+  display:inline-block;
+  font-size:11.5px;
+  font-weight:800;
+  color:var(--primary);
+  background:rgba(30,136,255,0.1);
+  padding:3px 10px;
+  border-radius:999px;
+  margin-bottom:10px;
+}
+.school-auto-zone{ font-size:13px; font-weight:800; color:var(--text); margin-bottom:8px; }
+.school-auto-schools{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px; }
+.school-auto-schools span{
+  font-size:12.5px;
+  font-weight:700;
+  padding:5px 11px;
+  border-radius:999px;
+  background:var(--light);
+  color:var(--text);
+}
+.school-auto-note{ font-size:11.5px; color:var(--gray); }
+
+/* ---------- 지도 위 학군 요약 카드 (모달) ---------- */
+
+/* ---------- 교통정보 ---------- */
+.transit-fixed-row{
+  display:grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap:8px;
+  margin-bottom:8px;
+}
+.transit-fixed-row:last-child{ margin-bottom:0; }
+.transit-fixed-row input{
+  padding:11px 14px;
+  border-radius:10px;
+  border:1.5px solid var(--line);
+  font-size:13px;
+  background:var(--light);
+  transition:0.2s var(--ease);
+}
+.transit-fixed-row input::placeholder{ color:#A6B2C6; }
+.transit-fixed-row input:focus{
+  outline:none;
+  border-color:var(--primary);
+  background:#fff;
+  box-shadow:0 0 0 4px rgba(30,136,255,0.12);
+}
+
+@media (max-width:520px){
+  .transit-fixed-row{ grid-template-columns:1fr; }
+}
+
+/* ---------- 학군정보: 학교 입력 시 자동으로 칸이 늘어나는 리스트 ---------- */
+.school-group{ margin-bottom:18px; }
+.school-group:last-child{ margin-bottom:0; }
+.school-group > label{
+  display:block;
+  font-size:13px;
+  font-weight:800;
+  color:var(--text);
+  margin-bottom:8px;
+}
+.school-input-list{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.school-input-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.school-input{
+  flex:1;
+  padding:11px 14px;
+  border-radius:10px;
+  border:1.5px solid var(--line);
+  font-size:13px;
+  background:var(--light);
+  transition:0.2s var(--ease);
+}
+.school-input::placeholder{ color:#A6B2C6; }
+.school-input:focus{
+  outline:none;
+  border-color:var(--primary);
+  background:#fff;
+  box-shadow:0 0 0 4px rgba(30,136,255,0.12);
+}
+.school-remove{
+  flex-shrink:0;
+  width:32px; height:32px;
+  border-radius:8px;
+  border:0;
+  background:var(--light);
+  color:var(--gray);
+  cursor:pointer;
+  font-size:12px;
+  transition:0.2s var(--ease);
+}
+.school-remove:hover{ background:#FEE2E2; color:var(--danger, #EF4444); }
+
 .upload-box{
   display:block;
   border:2px dashed var(--line);
@@ -543,6 +797,11 @@ select:focus-visible,
   animation:paperSwayAlt 8s ease-in-out infinite;
   transform-origin:top center;
   transition:box-shadow 0.3s ease;
+  cursor:pointer;
+}
+.flyer-card:focus-visible{
+  outline:2.5px solid var(--primary);
+  outline-offset:4px;
 }
 .preview-flyer:hover .flyer-card{
   animation-play-state:paused;
@@ -645,6 +904,37 @@ select:focus-visible,
   from{ opacity:0; transform:scale(0.85); }
   to{ opacity:1; transform:scale(1); }
 }
+.flyer-options{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  min-height:0;
+  margin-top:8px;
+}
+.flyer-options:empty{ display:none; margin-top:0; }
+.flyer-options span{
+  font-size:11px;
+  font-weight:700;
+  padding:4px 9px;
+  border-radius:999px;
+  background:rgba(30,136,255,0.1);
+  color:var(--primary);
+  animation:tagPop 0.25s var(--ease);
+}
+.flyer-meta{
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px dashed var(--line);
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.flyer-meta:empty{ display:none; margin-top:0; padding-top:0; border-top:0; }
+.flyer-meta div{
+  font-size:11.5px;
+  color:var(--gray);
+  line-height:1.5;
+}
 .flyer-stamp{
   position:absolute;
   bottom:20px; right:18px;
@@ -659,6 +949,252 @@ select:focus-visible,
   margin-top:14px;
   line-height:1.6;
   padding:0 4px;
+}
+
+/* ---------- 카드 클릭 유도 힌트 ---------- */
+.flyer-detail-hint{
+  position:absolute;
+  bottom:20px; left:24px;
+  z-index:1;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 12px;
+  border-radius:999px;
+  background:var(--dark);
+  color:#fff;
+  font-size:11px;
+  font-weight:800;
+  opacity:0.85;
+  transition:0.2s var(--ease);
+}
+.preview-flyer:hover .flyer-detail-hint,
+.flyer-card:focus-visible .flyer-detail-hint{
+  opacity:1;
+  background:var(--primary);
+  transform:translateY(-2px);
+}
+
+/* ---------- 상세정보 모달 ---------- */
+.detail-modal{
+  position:fixed;
+  inset:0;
+  z-index:3000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  opacity:0;
+  visibility:hidden;
+  transition:opacity 0.25s var(--ease), visibility 0.25s var(--ease);
+}
+.detail-modal.open{ opacity:1; visibility:visible; }
+.detail-modal-backdrop{
+  position:absolute;
+  inset:0;
+  background:rgba(15,23,42,0.55);
+  backdrop-filter:blur(2px);
+}
+.detail-modal-panel{
+  position:relative;
+  width:min(720px, 100%);
+  max-height:85vh;
+  overflow-y:auto;
+  background:var(--paper, #fff);
+  border-radius:36px;
+  padding:48px 42px 42px;
+  box-shadow:0 40px 90px rgba(15,23,42,0.35);
+  transform:translateY(16px) scale(0.98);
+  transition:transform 0.25s var(--ease);
+}
+.detail-modal.open .detail-modal-panel{ transform:translateY(0) scale(1); }
+.detail-modal-close{
+  position:absolute;
+  top:27px; right:27px;
+  width:48px; height:48px;
+  border-radius:50%;
+  border:0;
+  background:var(--light);
+  color:var(--gray);
+  font-size:21px;
+  cursor:pointer;
+  transition:0.2s var(--ease);
+}
+.detail-modal-close:hover{ background:#e9eff8; color:var(--text); }
+.detail-modal-label{
+  font-size:18px;
+  font-weight:800;
+  color:var(--gray);
+  display:flex;
+  align-items:center;
+  gap:9px;
+  margin-bottom:27px;
+}
+.detail-modal-label i{ color:var(--primary); }
+.detail-modal-summary{
+  padding-bottom:27px;
+  margin-bottom:27px;
+  border-bottom:1.5px dashed var(--line);
+}
+.detail-modal-summary .flyer-deal{
+  font-size:16.5px;
+  padding:6px 15px;
+  border-radius:6px;
+}
+.detail-modal-summary .flyer-price{ font-size:42px; margin-bottom:12px; }
+.detail-modal-summary .flyer-addr{ font-size:22.5px; margin-bottom:15px; }
+.detail-modal-summary .flyer-spec{ font-size:18px; gap:9px 21px; }
+.detail-modal-block{ margin-bottom:27px; }
+.detail-modal-block:last-child{ margin-bottom:0; }
+.detail-modal-block h4{
+  font-size:18.75px;
+  font-weight:800;
+  color:var(--text);
+  margin-bottom:15px;
+}
+.detail-modal-block .flyer-tags,
+.detail-modal-block .flyer-options{ gap:9px; }
+.detail-modal-block .flyer-tags span,
+.detail-modal-block .flyer-options span{
+  font-size:16.5px;
+  padding:6px 13.5px;
+}
+.detail-modal-block .flyer-meta{ gap:6px; }
+.detail-modal-block .flyer-meta div{ font-size:17px; }
+
+/* ---------- 모달: 정보 탭 (교통정보/학군정보 공용) ---------- */
+.info-tabs{
+  display:flex;
+  gap:6px;
+  padding:4px;
+  background:var(--light);
+  border-radius:12px;
+  margin-bottom:14px;
+}
+.info-tab{
+  flex:1;
+  padding:10px 0;
+  border:0;
+  background:transparent;
+  border-radius:9px;
+  font-size:14px;
+  font-weight:800;
+  color:var(--gray);
+  cursor:pointer;
+  transition:0.2s var(--ease);
+}
+.info-tab:hover:not(.active){ color:var(--text); }
+.info-tab.active{
+  background:var(--dark);
+  color:#fff;
+}
+
+/* ---------- 모달: 도착지 검색 (교통정보) ---------- */
+.dest-search{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 16px;
+  border-radius:12px;
+  border:1.5px solid var(--line);
+  background:#fff;
+  margin-bottom:14px;
+}
+.dest-search i{ color:var(--gray); font-size:15px; }
+.dest-search input{
+  flex:1;
+  border:0;
+  background:transparent;
+  font-size:14px;
+  color:var(--text);
+}
+.dest-search input:focus{ outline:none; }
+.dest-search input::placeholder{ color:#A6B2C6; }
+
+/* ---------- 모달: 교통 결과 줄 (지하철/최소시간 탭) ---------- */
+.detail-modal-block .flyer-meta .transit-result-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:14px 16px;
+  border-radius:14px;
+  background:var(--light);
+  margin-bottom:8px;
+  font-size:inherit;
+}
+.detail-modal-block .flyer-meta .transit-result-row:last-child{ margin-bottom:0; }
+.transit-result-row i{ color:var(--primary); font-size:15px; flex-shrink:0; }
+.transit-station-name{
+  flex:1;
+  font-size:16px;
+  font-weight:700;
+  color:var(--text);
+}
+.transit-walk-time{
+  flex-shrink:0;
+  font-size:13px;
+  font-weight:800;
+  color:var(--primary);
+  background:rgba(30,136,255,0.1);
+  padding:5px 12px;
+  border-radius:999px;
+}
+
+/* 학군정보: 학교 하나당 한 줄 (추후 지도 연동을 위한 여유 공간 확보) */
+.detail-modal-block .flyer-meta .school-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:14px 16px;
+  border-radius:14px;
+  background:var(--light);
+  margin-bottom:8px;
+  font-size:inherit;
+}
+.detail-modal-block .flyer-meta .school-row:last-child{ margin-bottom:0; }
+.school-level-tag{
+  flex-shrink:0;
+  font-size:13px;
+  font-weight:800;
+  padding:5px 12px;
+  border-radius:999px;
+  background:rgba(30,136,255,0.12);
+  color:var(--primary);
+}
+.school-name{
+  flex:1;
+  font-size:16px;
+  font-weight:700;
+  color:var(--text);
+}
+.school-map-icon{
+  flex-shrink:0;
+  font-size:14px;
+  color:#CBD5E1;
+}
+
+.empty-hint{
+  font-size:18px;
+  color:#B9C3D4;
+  font-weight:500;
+}
+
+@media (max-width:700px){
+  .detail-modal-panel{ width:100%; padding:32px 24px 26px; border-radius:24px; }
+  .detail-modal-summary .flyer-price{ font-size:32px; }
+  .detail-modal-summary .flyer-addr{ font-size:18px; }
+  .detail-modal-block h4{ font-size:16px; }
+  .detail-modal-block .flyer-tags span,
+  .detail-modal-block .flyer-options span,
+  .detail-modal-block .flyer-meta div,
+  .empty-hint{ font-size:14px; }
+  .school-name{ font-size:14px; }
+  .school-level-tag{ font-size:11px; padding:4px 10px; }
+  .info-tab{ font-size:12.5px; padding:9px 0; }
+  .dest-search{ padding:10px 14px; }
+  .dest-search input{ font-size:13px; }
+  .transit-station-name{ font-size:14px; }
+  .transit-walk-time{ font-size:11.5px; padding:4px 10px; }
 }
 
 /* ================= Benefits ================= */
