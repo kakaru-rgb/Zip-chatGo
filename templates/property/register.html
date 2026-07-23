@@ -558,13 +558,18 @@
   });
 
   // ---------- VWorld 연동: 지오코딩 / 검색 / 지도 / 학군 자동 매칭 ----------
+  // 이 키는 이제 배경지도 타일(WMTS) 요청에만 쓰여요. 검색/지오코더 API 키는
+  // 노출되지 않도록 Cloudflare Worker 쪽 환경변수(VWORLD_KEY)에 따로 저장해뒀어요.
   const VWORLD_KEY = 'CE67C94F-A420-3F52-AFD2-8D06A4E71F66';
   // VWorld 콘솔에 등록한 도메인과 실제 접속 도메인이 일치해야 요청이 통과돼요.
   const VWORLD_DOMAIN = window.location.hostname;
-  // VWorld API를 브라우저에서 직접 호출하면 CORS가 막혀서, 배포 시엔 아래 두 URL을
-  // 본인 서버(또는 Cloudflare Worker 등) 경유 프록시 주소로 바꿔줘야 할 수 있어요.
-  const VWORLD_SEARCH_URL = 'https://api.vworld.kr/req/search';
-  const VWORLD_ADDRESS_URL = 'https://api.vworld.kr/req/address';
+  // ⚠️ VWorld 검색/지오코더 API는 브라우저에서 직접 호출하면 CORS로 막혀요.
+  // 아래 PROXY_BASE를 본인 Cloudflare Worker 주소로 바꿔주세요.
+  // (설정 방법은 cloudflare-worker-proxy.js 안내 참고)
+  const VWORLD_PROXY_BASE = 'https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev';
+  const VWORLD_SEARCH_URL = `${VWORLD_PROXY_BASE}/req/search`;
+  const VWORLD_ADDRESS_URL = `${VWORLD_PROXY_BASE}/req/address`;
+  // 배경지도 타일(WMTS)은 CORS 제약이 없는 이미지 요청이라 직접 호출해도 돼요.
   const VWORLD_TILE_URL = `https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_KEY}/Base/{z}/{y}/{x}.png`;
 
   let zoneData = { elementary: [], middle: [], high: [] };
@@ -581,6 +586,17 @@
   ]).then(([el, mid, high]) => {
     zoneData = { elementary: el, middle: mid, high: high };
   });
+
+  // ---------- 교통정보: 지하철역 도보 시간 (고정 3줄) ----------
+  function getTransitStops() {
+    const stops = [];
+    for (let i = 1; i <= 3; i++) {
+      const station = document.getElementById(`transitStation${i}`).value.trim();
+      const minutes = document.getElementById(`transitMinutes${i}`).value.trim();
+      if (station && minutes) stops.push({ station, minutes });
+    }
+    return stops;
+  }
 
   // ---------- 포인트-인-폴리곤 (Ray casting) ----------
   function pointInRing(lng, lat, ring) {
@@ -703,7 +719,7 @@
   async function searchAddress(query) {
     const url = `${VWORLD_SEARCH_URL}?service=search&request=search&version=2.0&crs=EPSG:4326`
       + `&query=${encodeURIComponent(query)}&type=address&category=road&format=json&errorformat=json`
-      + `&size=5&page=1&key=${VWORLD_KEY}&domain=${VWORLD_DOMAIN}`;
+      + `&size=5&page=1&domain=${VWORLD_DOMAIN}`;
     try {
       const res = await fetch(url);
       const data = await res.json();
@@ -768,7 +784,7 @@
   async function geocodeAddress(addr) {
     for (const type of ['road', 'parcel']) {
       const url = `${VWORLD_ADDRESS_URL}?service=address&request=getcoord&version=2.0`
-        + `&crs=epsg:4326&address=${encodeURIComponent(addr)}&type=${type}&format=json&key=${VWORLD_KEY}&domain=${VWORLD_DOMAIN}`;
+        + `&crs=epsg:4326&address=${encodeURIComponent(addr)}&type=${type}&format=json&domain=${VWORLD_DOMAIN}`;
       try {
         const res = await fetch(url);
         const data = await res.json();
