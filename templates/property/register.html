@@ -566,7 +566,7 @@
   // ⚠️ VWorld 검색/지오코더 API는 브라우저에서 직접 호출하면 CORS로 막혀요.
   // 아래 PROXY_BASE를 본인 Cloudflare Worker 주소로 바꿔주세요.
   // (설정 방법은 cloudflare-worker-proxy.js 안내 참고)
-  const VWORLD_PROXY_BASE = 'https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev';
+  const VWORLD_PROXY_BASE = 'https://tight-resonance-c04b.aodwnsdud2001.workers.dev';
   const VWORLD_SEARCH_URL = `${VWORLD_PROXY_BASE}/req/search`;
   const VWORLD_ADDRESS_URL = `${VWORLD_PROXY_BASE}/req/address`;
   // 배경지도 타일(WMTS)은 CORS 제약이 없는 이미지 요청이라 직접 호출해도 돼요.
