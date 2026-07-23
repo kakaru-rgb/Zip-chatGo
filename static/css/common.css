@@ -4,8 +4,59 @@
    - 서브페이지 공통 헤더
    - 서브페이지 공통 푸터
 =========================== */
+/* 
+  선택자 {속성: 값;}
+  선택자 {속성: 값 값 값 ...;}
+  선택자 {속성: 값,값,값 ...;}
+
+  선택자?
+    1. type(태그): html태그
+    2. class: .이름
+    3. id: #이름
+    4. 전체: *
+    5. 그룹: 선택자, 선택자, 선택자, ....
+    6. 슈도(가상) 클래스: :root(= html), :hover
+    7. 가상 요소: ::after, ::before
+
+  속성? 기본형, 속기형
+    1. 텍스트
+      color: #fff|white|rgba(255,255,255,1)
+      기본형
+      font-family: 굴림, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      font-weight: bold;
+      font-style: italic;
+      속기형
+       font: [굵기] [기울임] 크기[/줄간격] 글꼴; 
+       font: bold italic 16px/1.5 굴림; 
+      opacity: 0(투명) ~ 1(불투명)
+    2. 이미지
+      width
+      height
+      배경이미지
+        background-image
+        background-color
+        background-position
+        background-repeat
+        background-size
+        background-attachment: fixed;
+        background: 색 url() x위치 반복 y위치/w크기 h크기 고정여부;
+        background: #fff url('경로/이미지') 0 0/10px 10px fixed;
+    3. 비디오
+      width
+      height
+    4. 오디오
+*/
 
 :root {
+  /* 
+    CSS 변수 정의
+      --이름: 값;
+
+    CSS 변수 사용
+      var(변수명);
+  */
   --primary: #1E88FF;
   --accent: #17D4B3;
   --dark: #0F172A;
@@ -42,6 +93,12 @@ body {
     radial-gradient(circle at top left, rgba(30, 136, 255, 0.16), transparent 35%),
     linear-gradient(135deg, #F8FAFC, #EEF7FF);
   overflow-x: hidden;
+}
+
+iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
 }
 
 a {

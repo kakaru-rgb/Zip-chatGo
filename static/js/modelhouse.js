@@ -9,8 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
     { title: '그린 산책로', subtitle: '꽃과 나무 사이로 이어지는 단지 안의 산책길', image: 'https://unsplash.com/photos/5PHjo1TFzsw/download?force=true&w=1200' }
   ];
   const current = document.querySelector('#sceneCurrent'), next = document.querySelector('#sceneNext');
+
   const title = document.querySelector('#sceneTitle'), subtitle = document.querySelector('#sceneSubtitle'), number = document.querySelector('#sceneNumber');
+
   const progress = document.querySelector('#sceneProgress'), dots = document.querySelector('#sceneDots'), plan = document.querySelector('#floorplanOverlay');
+  
   let index = 0, timer;
   scenes.forEach((scene, i) => { const dot = document.createElement('button'); dot.type = 'button'; dot.setAttribute('aria-label', `${scene.title} 보기`); dot.addEventListener('click', () => setScene(i)); dots.append(dot); });
   function restartProgress() { progress.classList.remove('running'); void progress.offsetWidth; progress.classList.add('running'); }
@@ -22,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     plan.classList.toggle('active', Boolean(scene.plan)); [...dots.children].forEach((dot, i) => dot.classList.toggle('active', i === index));
     clearInterval(timer); restartProgress(); timer = setInterval(() => setScene(index + 1), 4600);
   }
+  
   document.querySelector('#prevScene').addEventListener('click', () => setScene(index - 1)); document.querySelector('#nextScene').addEventListener('click', () => setScene(index + 1));
   current.style.backgroundImage = `url("${scenes[0].image}")`; setScene(0);
 });
