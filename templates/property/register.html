@@ -6,8 +6,7 @@
 <title>매물 등록 | 집찾GO</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=706d1a4da6d31b1ee3225b688aaa6b0d&libraries=services&autoload=false"></script>
 <link rel="stylesheet" href="../../static/css/common.css">
 <link rel="stylesheet" href="../../static/css/register.css">
 </head>
@@ -111,7 +110,7 @@
             </div>
             <div id="vworldMap" class="vworld-map"></div>
           </div>
-          <p class="map-note" id="mapNote">주소를 입력하면 국토교통부 브이월드(VWorld) 지도로 위치를 확인해요. 분당구 안이면 학군 정보도 함께 자동으로 채워져요.</p>
+          <p class="map-note" id="mapNote">주소를 입력하면 카카오맵으로 위치를 확인해요. 분당구 안이면 학군 정보도 함께 자동으로 채워져요.</p>
         </div>
       </div>
 
@@ -557,26 +556,22 @@
     limitMsg: '직접 추가할 수 있는 옵션은 최대 5개예요.'
   });
 
-  // ---------- VWorld 연동: 지오코딩 / 검색 / 지도 / 학군 자동 매칭 ----------
-  // 이 키는 이제 배경지도 타일(WMTS) 요청에만 쓰여요. 검색/지오코더 API 키는
-  // 노출되지 않도록 Cloudflare Worker 쪽 환경변수(VWORLD_KEY)에 따로 저장해뒀어요.
-  const VWORLD_KEY = 'CE67C94F-A420-3F52-AFD2-8D06A4E71F66';
-  // VWorld 콘솔에 등록한 도메인과 실제 접속 도메인이 일치해야 요청이 통과돼요.
-  const VWORLD_DOMAIN = window.location.hostname;
-  // ⚠️ VWorld 검색/지오코더 API는 브라우저에서 직접 호출하면 CORS로 막혀요.
-  // 아래 PROXY_BASE를 본인 Cloudflare Worker 주소로 바꿔주세요.
-  // (설정 방법은 cloudflare-worker-proxy.js 안내 참고)
-  const VWORLD_PROXY_BASE = 'https://tight-resonance-c04b.aodwnsdud2001.workers.dev';
-  const VWORLD_SEARCH_URL = `${VWORLD_PROXY_BASE}/req/search`;
-  const VWORLD_ADDRESS_URL = `${VWORLD_PROXY_BASE}/req/address`;
-  // 배경지도 타일(WMTS)은 CORS 제약이 없는 이미지 요청이라 직접 호출해도 돼요.
-  const VWORLD_TILE_URL = `https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_KEY}/Base/{z}/{y}/{x}.png`;
-
+  // ---------- 카카오맵 연동: 지오코딩 / 검색 / 지도 / 학군 자동 매칭 ----------
   let zoneData = { elementary: [], middle: [], high: [] };
-  let leafletMap = null;
-  let leafletZoneLayer = null;
-  let leafletMarker = null;
+  let kakaoMap = null;
+  let kakaoMarker = null;
+  let kakaoZoneOverlays = [];
+  let kakaoGeocoder = null;
   let currentSchoolMatch = null; // 1단계에서 확정된 학군 매칭 결과 (모달에서도 재사용)
+
+  // 카카오 SDK는 autoload=false로 불러왔기 때문에 직접 load()를 호출해줘야 해요.
+  if (typeof kakao !== 'undefined' && kakao.maps) {
+    kakao.maps.load(() => {
+      kakaoGeocoder = new kakao.maps.services.Geocoder();
+    });
+  } else {
+    console.error('[카카오맵] SDK를 불러오지 못했어요. appkey와 도메인 등록을 확인해주세요.');
+  }
 
   // 학군 데이터 로드 (분당구)
   Promise.all([
@@ -670,28 +665,44 @@
       : `<p class="school-auto-note">해당 없음</p>`;
   }
 
-  // ---------- 지도 렌더링 (Leaflet + VWorld 배경지도 API) ----------
+  // ---------- 지도 렌더링 (카카오맵) ----------
+  function geoRingToPath(ring) {
+    return ring.map(([lng, lat]) => new kakao.maps.LatLng(lat, lng));
+  }
+
   function ensureMap(lng, lat) {
     const mapEl = document.getElementById('vworldMap');
-    if (!leafletMap) {
-      leafletMap = L.map(mapEl, { attributionControl: false, zoomControl: true }).setView([lat, lng], 16);
-      L.tileLayer(VWORLD_TILE_URL, {
-        maxZoom: 19,
-        attribution: '&copy; VWorld'
-      }).addTo(leafletMap);
-      leafletZoneLayer = L.layerGroup().addTo(leafletMap);
+    const center = new kakao.maps.LatLng(lat, lng);
+    if (!kakaoMap) {
+      kakaoMap = new kakao.maps.Map(mapEl, { center, level: 4 });
     } else {
-      leafletMap.setView([lat, lng], 16);
-      leafletZoneLayer.clearLayers();
+      kakaoMap.setCenter(center);
     }
-    if (leafletMarker) leafletMarker.remove();
-    leafletMarker = L.marker([lat, lng]).addTo(leafletMap);
-    setTimeout(() => leafletMap.invalidateSize(), 200);
+    if (kakaoMarker) kakaoMarker.setMap(null);
+    kakaoMarker = new kakao.maps.Marker({ position: center, map: kakaoMap });
+
+    kakaoZoneOverlays.forEach(p => p.setMap(null));
+    kakaoZoneOverlays = [];
+    setTimeout(() => kakaoMap.relayout(), 200);
   }
 
   function drawZonePolygon(zone, color) {
-    if (!zone || !leafletZoneLayer) return;
-    L.geoJSON(zone.geometry, { style: { color, weight: 2, fillOpacity: 0.12 } }).addTo(leafletZoneLayer);
+    if (!zone || !kakaoMap) return;
+    const geom = zone.geometry;
+    const polygons = geom.type === 'MultiPolygon' ? geom.coordinates : [geom.coordinates];
+    polygons.forEach(rings => {
+      const path = rings.map(geoRingToPath);
+      const polygon = new kakao.maps.Polygon({
+        map: kakaoMap,
+        path,
+        strokeWeight: 2,
+        strokeColor: color,
+        strokeOpacity: 0.9,
+        fillColor: color,
+        fillOpacity: 0.12
+      });
+      kakaoZoneOverlays.push(polygon);
+    });
   }
 
   // ---------- 지오코딩 확정 처리 (주소 검색 선택 또는 '위치 확인' 클릭 시 공통 실행) ----------
@@ -711,32 +722,30 @@
     updatePreview();
   }
 
-  // ---------- 검색 API: 주소 자동완성 ----------
+  // ---------- 카카오 Geocoder: 주소 검색 (자동완성 + 최종 확정 공용) ----------
   const addr1Input = document.getElementById('addr1');
   const addrSuggestList = document.getElementById('addrSuggestList');
   let addrSearchTimer = null;
 
-  async function searchAddress(query) {
-    const url = `${VWORLD_SEARCH_URL}?service=search&request=search&version=2.0&crs=EPSG:4326`
-      + `&query=${encodeURIComponent(query)}&type=address&category=road&format=json&errorformat=json`
-      + `&size=5&page=1&domain=${VWORLD_DOMAIN}`;
-    try {
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data?.response?.status !== 'OK') {
-        console.warn('[VWorld 검색 API] 정상 응답이 아니에요:', data?.response?.status, data);
-        return [];
+  function searchAddress(query) {
+    return new Promise((resolve) => {
+      if (!kakaoGeocoder) {
+        console.warn('[카카오맵] Geocoder가 아직 준비되지 않았어요.');
+        resolve([]);
+        return;
       }
-      const items = data?.response?.result?.items || [];
-      return items.map(item => ({
-        text: item.address.road || item.address.parcel || item.title,
-        lng: Number(item.point.x),
-        lat: Number(item.point.y)
-      }));
-    } catch (err) {
-      console.error('[VWorld 검색 API] 요청 자체가 실패했어요 (네트워크/CORS 확인):', err);
-      return [];
-    }
+      kakaoGeocoder.addressSearch(query, (result, status) => {
+        if (status === kakao.maps.services.Status.OK) {
+          resolve(result.map(item => ({
+            text: (item.road_address && item.road_address.address_name) || item.address.address_name,
+            lng: Number(item.x),
+            lat: Number(item.y)
+          })));
+        } else {
+          resolve([]);
+        }
+      });
+    });
   }
 
   function renderSuggestions(items) {
@@ -777,25 +786,13 @@
     });
   }
 
-  // ---------- Geocoder API: '위치 확인' 버튼 (직접 입력 후 바로 확정) ----------
+  // ---------- '위치 확인' 버튼 (직접 입력 후 바로 확정) ----------
   const geoCheckBtn = document.getElementById('geoCheckBtn');
   const mapPlaceholder = document.getElementById('mapPlaceholder');
 
   async function geocodeAddress(addr) {
-    for (const type of ['road', 'parcel']) {
-      const url = `${VWORLD_ADDRESS_URL}?service=address&request=getcoord&version=2.0`
-        + `&crs=epsg:4326&address=${encodeURIComponent(addr)}&type=${type}&format=json&domain=${VWORLD_DOMAIN}`;
-      try {
-        const res = await fetch(url);
-        const data = await res.json();
-        const point = data?.response?.result?.point;
-        if (point) return { lng: Number(point.x), lat: Number(point.y) };
-        console.warn(`[VWorld 지오코더 API] type=${type} 결과 없음:`, data?.response?.status, data);
-      } catch (err) {
-        console.error('[VWorld 지오코더 API] 요청 자체가 실패했어요 (네트워크/CORS 확인):', err);
-      }
-    }
-    return null;
+    const items = await searchAddress(addr);
+    return items.length ? { lng: items[0].lng, lat: items[0].lat } : null;
   }
 
   if (geoCheckBtn) {
