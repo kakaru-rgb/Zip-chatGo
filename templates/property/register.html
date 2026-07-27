@@ -93,8 +93,8 @@
           <div class="addr-input-row">
             <input type="text" id="addr1" placeholder="도로명 주소를 입력해보세요 (예: 성남시 분당구 판교로 242)" autocomplete="off">
             <button type="button" id="geoCheckBtn" class="geo-btn"><i class="fa-solid fa-location-crosshairs"></i> 위치 확인</button>
+            <ul class="addr-suggest-list" id="addrSuggestList"></ul>
           </div>
-          <ul class="addr-suggest-list" id="addrSuggestList"></ul>
         </div>
         <div class="field">
           <label for="addr2">상세주소 (동/호수)</label>
@@ -770,7 +770,12 @@
       addrSuggestList.classList.remove('show');
       return;
     }
-    addrSuggestList.innerHTML = items.map((item, i) => `<li data-index="${i}">${item.text}</li>`).join('');
+    addrSuggestList.innerHTML = items.map((item, i) => `
+      <li data-index="${i}">
+        <i class="fa-solid fa-location-dot"></i>
+        <span>${item.text}</span>
+      </li>
+    `).join('');
     addrSuggestList.classList.add('show');
     addrSuggestList.querySelectorAll('li').forEach((li, i) => {
       li.addEventListener('click', () => {
