@@ -727,6 +727,8 @@
   const addrSuggestList = document.getElementById('addrSuggestList');
   let addrSearchTimer = null;
 
+  let kakaoPlaces = null; // addressSearch가 실패했을 때 쓸 키워드 검색 (더 관대하게 찾아줘요)
+
   function searchAddress(query) {
     return new Promise((resolve) => {
       if (!kakaoGeocoder) {
@@ -735,15 +737,29 @@
         return;
       }
       kakaoGeocoder.addressSearch(query, (result, status) => {
-        if (status === kakao.maps.services.Status.OK) {
+        if (status === kakao.maps.services.Status.OK && result.length) {
           resolve(result.map(item => ({
             text: (item.road_address && item.road_address.address_name) || item.address.address_name,
             lng: Number(item.x),
             lat: Number(item.y)
           })));
-        } else {
-          resolve([]);
+          return;
         }
+
+        // 도로명 + 건물번호 조합 등은 addressSearch가 못 찾는 경우가 있어서,
+        // 키워드(장소) 검색으로 한 번 더 시도해요.
+        if (!kakaoPlaces) kakaoPlaces = new kakao.maps.services.Places();
+        kakaoPlaces.keywordSearch(query, (places, placesStatus) => {
+          if (placesStatus === kakao.maps.services.Status.OK) {
+            resolve(places.map(item => ({
+              text: item.road_address_name || item.address_name || item.place_name,
+              lng: Number(item.x),
+              lat: Number(item.y)
+            })));
+          } else {
+            resolve([]);
+          }
+        });
       });
     });
   }
