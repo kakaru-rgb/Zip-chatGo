@@ -16,7 +16,8 @@ function isLoggedIn() {
 function redirectToLoginIfNeeded(event) {
   if (!isLoggedIn()) {
     event.preventDefault();
-    window.location.href = "../../templates/member/login.html";
+    const target = event.currentTarget.href; // 원래 가려던 페이지 (예: register.html)
+    window.location.href = "./templates/member/login.html?redirect=" + encodeURIComponent(target);
   }
 }
 
@@ -30,7 +31,8 @@ const conversationButton = document.querySelector(".ai-search-box button");
 function startDemoConversation(event) {
   if (!isLoggedIn()) {
     event?.preventDefault();
-    window.location.href = "../../templates/member/login.html";
+    const target = new URL("./templates/ai/chat.html", window.location.href).href;
+    window.location.href = "./templates/member/login.html?redirect=" + encodeURIComponent(target);
     return;
   }
 
