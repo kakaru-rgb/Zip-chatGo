@@ -313,4 +313,90 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     console.log('Team page interactive features loaded successfully!');
+
+    // Typing Effect for Service Titles
+    const typingTexts = document.querySelectorAll('.typing-text');
+    typingTexts.forEach(text => {
+        const originalText = text.getAttribute('data-text');
+        text.textContent = '';
+        let charIndex = 0;
+        
+        const typeChar = () => {
+            if (charIndex < originalText.length) {
+                text.textContent += originalText.charAt(charIndex);
+                charIndex++;
+                setTimeout(typeChar, 100);
+            } else {
+                text.style.borderRight = 'none';
+            }
+        };
+        
+        // Start typing when element is in view
+        const typingObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    setTimeout(typeChar, 500);
+                    typingObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
+        
+        typingObserver.observe(text);
+    });
+
+    // Fade In Effect for Service Descriptions
+    const fadeTexts = document.querySelectorAll('.fade-in-text');
+    const fadeObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                setTimeout(() => {
+                    entry.target.classList.add('visible');
+                }, 800);
+                fadeObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.5 });
+
+    fadeTexts.forEach(text => {
+        fadeObserver.observe(text);
+    });
+
+    // Service Item Scroll Animation
+    const serviceItems = document.querySelectorAll('.service-item');
+    const serviceObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry, index) => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '0';
+                entry.target.style.transform = 'translateY(50px)';
+                
+                setTimeout(() => {
+                    entry.target.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }, index * 200);
+                
+                serviceObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.2 });
+
+    serviceItems.forEach(item => {
+        serviceObserver.observe(item);
+    });
+
+    // Loading Animation for Service Images
+    const serviceImages = document.querySelectorAll('.service-image img');
+    serviceImages.forEach(img => {
+        img.style.opacity = '0';
+        img.style.transition = 'opacity 0.5s ease';
+        
+        img.addEventListener('load', () => {
+            img.style.opacity = '1';
+        });
+        
+        // Fallback for cached images
+        if (img.complete) {
+            img.style.opacity = '1';
+        }
+    });
 });
