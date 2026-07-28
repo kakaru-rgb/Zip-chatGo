@@ -15,6 +15,12 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.href = redirectTarget;
   }
 
+  // common.js가 localStorage의 이 키를 보고 로그인 상태를 판단하므로,
+  // 로그인/회원가입/게스트 체험 모두 이 함수를 통해 상태를 저장해요.
+  function setLoggedIn(userLabel) {
+    localStorage.setItem('jipchatgoLoginUser', userLabel);
+  }
+
   // 특정 페이지로 가기 위해 로그인이 필요해서 넘어온 경우, 안내 배너를 보여줘요.
   if (params.get('redirect')) {
     const banner = document.createElement('div');
@@ -176,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (pw.value.length < 4) { pw.classList.add('invalid'); ok = false; }
       else pw.classList.remove('invalid');
       if (ok) {
+        setLoggedIn(email.value);
         showToast('로그인 되었습니다. 이동할게요.');
         setTimeout(goToRedirectTarget, 700);
       }
@@ -200,6 +207,8 @@ document.addEventListener('DOMContentLoaded', () => {
       requiredAgree.forEach(chk => { if (!chk.checked) ok = false; });
 
       if (ok) {
+        const suEmail = document.getElementById('suEmail');
+        setLoggedIn(suEmail && suEmail.value ? suEmail.value : 'member');
         showToast('회원가입이 완료됐어요. 환영합니다!');
         setTimeout(goToRedirectTarget, 700);
       }
@@ -212,6 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ---------- 게스트 체험 로그인 (발표/시연용) ---------- */
   document.querySelectorAll('.guest-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+      setLoggedIn('guest');
       showToast('게스트 모드로 접속했어요 (시연용 계정)');
       setTimeout(goToRedirectTarget, 900);
     });

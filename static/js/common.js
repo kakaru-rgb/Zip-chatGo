@@ -3,8 +3,6 @@
    공통 헤더 / 모바일 메뉴 / 로그인 상태 처리
 ========================== */
 
-const SITE_ROOT_URL = new URL("../../", document.currentScript.src);
-
 document.addEventListener("DOMContentLoaded", () => {
   initHeaderScroll();
   initMobileMenu();
@@ -76,7 +74,7 @@ function updateLoginMenu() {
       document.body.classList.remove("login-active");
 
       alert("로그아웃 되었습니다.");
-      location.href = new URL("index.html", SITE_ROOT_URL).href;
+      location.href = "../../index.html";
     });
   });
 }

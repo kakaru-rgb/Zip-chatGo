@@ -174,7 +174,7 @@ function handleSignup(e) {
   clearSignupForm();
 
   setTimeout(() => {
-    location.href = "./login.html";
+    location.href = "../../login.html";
   }, 900);
 }
 

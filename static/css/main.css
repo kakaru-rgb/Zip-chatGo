@@ -532,6 +532,10 @@ body {
 =========================== */
 
 @media (max-width: 420px) {
+  .feature-section {
+    grid-template-columns: 1fr;
+  }
+
   .hero-section {
     padding: 24px 16px;
   }
@@ -546,6 +550,10 @@ body {
 
   .ai-search-box input {
     height: 48px;
+  }
+
+  .ai-search-box button {
+    padding: 0 12px;
   }
 
   .ai-search-box button {
