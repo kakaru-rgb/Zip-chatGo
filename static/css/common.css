@@ -42,12 +42,6 @@ body {
   overflow-x: hidden;
 }
 
-iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-}
-
 a {
   color: inherit;
   text-decoration: none;
@@ -55,6 +49,19 @@ a {
 
 button {
   font-family: inherit;
+}
+
+img,
+svg,
+canvas {
+  max-width: 100%;
+}
+
+input,
+select,
+textarea,
+button {
+  min-width: 0;
 }
 
 /* ===========================
@@ -384,7 +391,9 @@ button {
     top: 78px;
     right: 0;
 
-    width: 230px;
+    width: min(230px, calc(100vw - 28px));
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
     padding: 14px;
 
     display: flex;
@@ -468,9 +477,11 @@ button {
   }
 
   .footer-links a {
+    min-width: 0;
     text-align: center;
     font-size: 13px;
     padding: 11px 8px;
+    word-break: keep-all;
   }
 
   .footer-info {
@@ -519,6 +530,8 @@ body.login-active .top-nav .user-menu {
 }
 
 .top-nav .logout-btn:hover {
+  color: white !important;
+  background: var(--gradient-main);
   transform: translateY(-2px);
   box-shadow: 0 16px 34px rgba(30, 136, 255, 0.32);
 }
