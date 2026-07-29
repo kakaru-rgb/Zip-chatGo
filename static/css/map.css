@@ -839,9 +839,16 @@ header h1 {
 }
 
 .poi-info-route-list {
+  max-height: 92px;
+
   display: flex;
   flex-wrap: wrap;
+  align-content: flex-start;
   gap: 5px;
+
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--poi-color) 35%, transparent) transparent;
 }
 
 .poi-info-route {

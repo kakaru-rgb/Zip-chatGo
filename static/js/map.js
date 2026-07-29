@@ -34,6 +34,7 @@ const MAX_VISIBLE_MARKERS = 700;
 const MAX_LIST_ITEMS = 200;
 const PROPERTY_MARKER_HEIGHT = 68;
 const MAX_VISIBLE_POI_MARKERS = 500;
+const MAX_BUS_ROUTES_PER_STOP = 30;
 
 const POI_CATEGORY_CONFIG = {
   "공공기관": {
@@ -176,7 +177,7 @@ function bindEvents() {
 
   document.addEventListener("keydown", event => {
     if (event.key === "Escape") {
-      closePoiInfoPopup();
+      closeAllInfoPopups();
     }
   });
 }
@@ -1011,13 +1012,18 @@ function renderPoiInfoPopup() {
         </div>
       `
     : "";
-  const busRoutes = Array.isArray(item.bus_routes)
+  const rawBusRoutes = Array.isArray(item.bus_routes)
     ? item.bus_routes.filter(Boolean)
+    : [];
+  const busRoutes = rawBusRoutes.length <= MAX_BUS_ROUTES_PER_STOP
+    ? rawBusRoutes
     : [];
   const busRouteInfo = busRoutes.length
     ? `
         <div class="poi-info-routes">
-          <div class="poi-info-routes-label">운행 버스</div>
+          <div class="poi-info-routes-label">
+            운행 버스 ${busRoutes.length.toLocaleString()}개
+          </div>
           <div class="poi-info-route-list">
             ${busRoutes.map(route => (
               `<span class="poi-info-route">${escapeHtml(route)}</span>`
