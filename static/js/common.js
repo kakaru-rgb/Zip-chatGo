@@ -3,6 +3,11 @@
    공통 헤더 / 모바일 메뉴 / 로그인 상태 처리
 ========================== */
 
+// 이 스크립트 자신의 위치(static/js/common.js) 기준으로 사이트 루트를 계산해요.
+// index.html에서 부르든(./static/js/common.js), 하위 페이지에서 부르든(../../static/js/common.js)
+// 브라우저가 해석하는 절대경로는 항상 동일하므로, 페이지 깊이에 상관없이 정확한 루트를 찾을 수 있어요.
+const COMMON_SITE_ROOT_URL = new URL("../../", document.currentScript.src);
+
 document.addEventListener("DOMContentLoaded", () => {
   initHeaderScroll();
   initMobileMenu();
@@ -74,7 +79,7 @@ function updateLoginMenu() {
       document.body.classList.remove("login-active");
 
       alert("로그아웃 되었습니다.");
-      location.href = "../../index.html";
+      location.href = new URL("index.html", COMMON_SITE_ROOT_URL).href;
     });
   });
 }
