@@ -266,15 +266,18 @@
         <div class="field" id="saleFields">
           <label for="price">매매가 (만원)</label>
           <input type="text" id="price" placeholder="예: 48000">
+          <p class="price-hint" id="priceHint"></p>
         </div>
         <div class="field-row" id="rentFields" style="display:none">
           <div class="field">
             <label for="deposit">보증금 (만원)</label>
             <input type="text" id="deposit" placeholder="예: 3000">
+            <p class="price-hint" id="depositHint"></p>
           </div>
           <div class="field">
             <label for="monthly">월세 (만원)</label>
             <input type="text" id="monthly" placeholder="예: 60">
+            <p class="price-hint" id="monthlyHint"></p>
           </div>
         </div>
 
@@ -957,8 +960,20 @@
     photos.forEach((src, i) => {
       const div = document.createElement('div');
       div.className = 'thumb' + (i === 0 ? ' main' : '');
-      div.innerHTML = `<img src="${src}" alt="매물 사진 ${i + 1}">` + (i === 0 ? '<span class="main-tag">대표</span>' : '');
+      div.innerHTML = `
+        <img src="${src}" alt="매물 사진 ${i + 1}">
+        ${i === 0 ? '<span class="main-tag">대표</span>' : ''}
+        <button type="button" class="thumb-remove" data-index="${i}" aria-label="사진 삭제"><i class="fa-solid fa-xmark"></i></button>
+      `;
       thumbGrid.appendChild(div);
+    });
+    thumbGrid.querySelectorAll('.thumb-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = Number(btn.dataset.index);
+        photos.splice(i, 1);
+        if (flyerPhotoIndex >= photos.length) flyerPhotoIndex = Math.max(0, photos.length - 1);
+        renderThumbs();
+      });
     });
     renderFlyerPhotoCarousel();
   }
@@ -979,12 +994,14 @@
       : '';
   }
 
-  flyerPhotoPrev.addEventListener('click', () => {
+  flyerPhotoPrev.addEventListener('click', (e) => {
+    e.stopPropagation();
     if (!photos.length) return;
     flyerPhotoIndex = (flyerPhotoIndex - 1 + photos.length) % photos.length;
     renderFlyerPhotoCarousel();
   });
-  flyerPhotoNext.addEventListener('click', () => {
+  flyerPhotoNext.addEventListener('click', (e) => {
+    e.stopPropagation();
     if (!photos.length) return;
     flyerPhotoIndex = (flyerPhotoIndex + 1) % photos.length;
     renderFlyerPhotoCarousel();
@@ -1037,12 +1054,26 @@
   }
   initFyPhotoCarousel();
 
-  // ---------- 가격 입력 콤마 포맷 ----------
+  // ---------- 억/만원 단위 변환 (가독성용) ----------
+  function formatKoreanPrice(manwon) {
+    const num = Number(manwon);
+    if (!num || isNaN(num)) return '';
+    const eok = Math.floor(num / 10000);
+    const rest = num % 10000;
+    if (eok > 0 && rest > 0) return `${eok}억 ${rest.toLocaleString('ko-KR')}만원`;
+    if (eok > 0) return `${eok}억원`;
+    return `${num.toLocaleString('ko-KR')}만원`;
+  }
+
+  // ---------- 가격 입력 콤마 포맷 + 억/만원 실시간 변환 힌트 ----------
+  const priceHintMap = { price: 'priceHint', deposit: 'depositHint', monthly: 'monthlyHint' };
   ['price', 'deposit', 'monthly'].forEach(id => {
     const el = document.getElementById(id);
+    const hintEl = document.getElementById(priceHintMap[id]);
     el.addEventListener('input', () => {
       const digits = el.value.replace(/[^0-9]/g, '');
       el.value = digits ? Number(digits).toLocaleString('ko-KR') : '';
+      if (hintEl) hintEl.textContent = digits ? `= ${formatKoreanPrice(digits)}` : '';
       updatePreview();
     });
   });
@@ -1073,14 +1104,16 @@
 
     if (deal === '매매') {
       const price = document.getElementById('price').value;
-      flyerPrice.textContent = price ? `${price}만원` : '가격 미입력';
+      flyerPrice.textContent = price ? formatKoreanPrice(price.replace(/[^0-9]/g, '')) : '가격 미입력';
     } else if (deal === '전세') {
       const deposit = document.getElementById('deposit').value;
-      flyerPrice.textContent = deposit ? `전세 ${deposit}만원` : '보증금 미입력';
+      flyerPrice.textContent = deposit ? `전세 ${formatKoreanPrice(deposit.replace(/[^0-9]/g, ''))}` : '보증금 미입력';
     } else {
       const deposit = document.getElementById('deposit').value;
       const monthly = document.getElementById('monthly').value;
-      flyerPrice.textContent = (deposit || monthly) ? `${deposit || 0}/${monthly || 0}만원` : '보증금/월세 미입력';
+      flyerPrice.textContent = (deposit || monthly)
+        ? `${formatKoreanPrice(deposit.replace(/[^0-9]/g, '')) || '0만원'} / ${formatKoreanPrice(monthly.replace(/[^0-9]/g, '')) || '0만원'}`
+        : '보증금/월세 미입력';
     }
 
     const addr1 = document.getElementById('addr1').value;
