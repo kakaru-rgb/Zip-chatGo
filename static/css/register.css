@@ -785,11 +785,27 @@ select:focus-visible,
 .thumb:hover img{ transform:scale(1.06); }
 .thumb.main{ border-color:var(--accent); }
 .thumb .main-tag{
-  position:absolute; top:4px; left:4px;
+  position:absolute; bottom:4px; left:4px;
   background:var(--accent); color:#fff;
   font-size:10px; font-weight:800;
   padding:2px 6px; border-radius:6px;
 }
+.thumb-remove{
+  position:absolute;
+  top:5px; left:5px;
+  width:20px; height:20px;
+  border:0;
+  border-radius:50%;
+  background:rgba(15,23,42,0.6);
+  color:#fff;
+  font-size:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:0.15s ease;
+}
+.thumb-remove:hover{ background:var(--danger, #EF4444); }
 
 .form-nav{
   display:flex;
