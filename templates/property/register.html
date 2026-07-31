@@ -957,8 +957,20 @@
     photos.forEach((src, i) => {
       const div = document.createElement('div');
       div.className = 'thumb' + (i === 0 ? ' main' : '');
-      div.innerHTML = `<img src="${src}" alt="매물 사진 ${i + 1}">` + (i === 0 ? '<span class="main-tag">대표</span>' : '');
+      div.innerHTML = `
+        <img src="${src}" alt="매물 사진 ${i + 1}">
+        ${i === 0 ? '<span class="main-tag">대표</span>' : ''}
+        <button type="button" class="thumb-remove" data-index="${i}" aria-label="사진 삭제"><i class="fa-solid fa-xmark"></i></button>
+      `;
       thumbGrid.appendChild(div);
+    });
+    thumbGrid.querySelectorAll('.thumb-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = Number(btn.dataset.index);
+        photos.splice(i, 1);
+        if (flyerPhotoIndex >= photos.length) flyerPhotoIndex = Math.max(0, photos.length - 1);
+        renderThumbs();
+      });
     });
     renderFlyerPhotoCarousel();
   }
@@ -979,12 +991,14 @@
       : '';
   }
 
-  flyerPhotoPrev.addEventListener('click', () => {
+  flyerPhotoPrev.addEventListener('click', (e) => {
+    e.stopPropagation();
     if (!photos.length) return;
     flyerPhotoIndex = (flyerPhotoIndex - 1 + photos.length) % photos.length;
     renderFlyerPhotoCarousel();
   });
-  flyerPhotoNext.addEventListener('click', () => {
+  flyerPhotoNext.addEventListener('click', (e) => {
+    e.stopPropagation();
     if (!photos.length) return;
     flyerPhotoIndex = (flyerPhotoIndex + 1) % photos.length;
     renderFlyerPhotoCarousel();
