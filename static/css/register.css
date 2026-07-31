@@ -325,6 +325,12 @@ select:focus-visible,
 }
 
 .field{ margin-bottom:22px; }
+.price-hint{
+  font-size:12.5px;
+  font-weight:700;
+  color:var(--primary);
+  margin-top:7px;
+}
 .field label{
   display:block;
   font-size:13px;
