@@ -1088,11 +1088,15 @@
   position: relative;
   z-index: 2;
   padding: 100px 20px;
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 25%, #2d1b4e 50%, #1a1a2e 75%, #0a0a0a 100%);
+  background: 
+    linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.5) 50%, rgba(0, 0, 0, 0.7) 100%),
+    url('https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
   border-radius: 40px;
   overflow: hidden;
   perspective: 1000px;
-  
 }
 
 .team-vision-cta h2 {
@@ -1219,7 +1223,7 @@
 .team-vision-cta .vision-text p {
   font-size: 19px;
   line-height: 1.9;
-  color: rgba(255, 255, 255, 0.95);
+  color: white;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
