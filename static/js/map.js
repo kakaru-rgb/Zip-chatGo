@@ -8,8 +8,17 @@ let sigunguIndex = null;
 let dongIndex = null;
 
 let markerMap = new Map();
-let infoWindow;
+let infoMarker = null;
 let renderTimer = null;
+
+let allPois = [];
+let poiIndexes = new Map();
+let poiMarkerMap = new Map();
+let poiInfoMarker = null;
+let activePoiPopupItems = [];
+let activePoiPopupIndex = 0;
+let activePoiPopupPosition = null;
+const activePoiCategories = new Set();
 
 const INITIAL_CENTER = new naver.maps.LatLng(37.40, 127.15);
 
@@ -23,6 +32,57 @@ const DONG_STAGE_MAX = 4;    // 3~4단계
 
 const MAX_VISIBLE_MARKERS = 700;
 const MAX_LIST_ITEMS = 200;
+const PROPERTY_CLUSTER_MARKER_WIDTH = 62;
+const PROPERTY_CLUSTER_MARKER_HEIGHT = 60;
+const PROPERTY_MARKER_WIDTH = 62;
+const PROPERTY_MARKER_HEIGHT = 58;
+const MAX_VISIBLE_POI_MARKERS = 500;
+const MAX_BUS_ROUTES_PER_STOP = 30;
+
+const POI_CATEGORY_CONFIG = {
+  "공공기관": {
+    label: "공공",
+    className: "public",
+    color: "#7a6fb5",
+    icon: '<path d="M3 9h18M5 9v8m4-8v8m6-8v8m4-8v8M3 20h18M12 3l9 4H3l9-4Z"/>'
+  },
+  "교육": {
+    label: "교육",
+    className: "education",
+    color: "#44896f",
+    icon: '<path d="m3 9 9-5 9 5-9 5-9-5Zm4 3v5c3 2 7 2 10 0v-5m4-3v6"/>'
+  },
+  "교통": {
+    label: "교통",
+    className: "transport",
+    color: "#397dae",
+    icon: '<path d="M6 17h12a2 2 0 0 0 2-2V7c0-3-4-4-8-4S4 4 4 7v8a2 2 0 0 0 2 2Zm-2-7h16M7 20v-3m10 3v-3M8 14h.01M16 14h.01"/>'
+  },
+  "의료": {
+    label: "의료",
+    className: "medical",
+    color: "#c46978",
+    icon: '<path d="M12 21S4 16.5 4 9.5A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8 3.5C20 16.5 12 21 12 21Z"/><path d="M8 12h2l1-3 2 6 1-3h2"/>'
+  },
+  "중개": {
+    label: "중개",
+    className: "brokerage",
+    color: "#b86f0b",
+    popupOffset: 54,
+    icon: '<path d="m4 10 8-6 8 6v9H4v-9Z"/><path d="M7 11h10v5H7zM9 19v-3m6 3v-3"/>'
+  }
+};
+
+const POI_VARIANT_CONFIG = {
+  police: {
+    className: "police",
+    color: "#a94732"
+  },
+  earlyEducation: {
+    className: "early-education",
+    color: "#a97b16"
+  }
+};
 
 map = new naver.maps.Map("map", {
   center: INITIAL_CENTER,
@@ -35,17 +95,12 @@ map = new naver.maps.Map("map", {
   }
 });
 
-infoWindow = new naver.maps.InfoWindow({
-  borderWidth: 0,
-  backgroundColor: "transparent",
-  anchorSize: new naver.maps.Size(12, 12)
-});
-
 loadProperties();
+loadPois();
 
 async function loadProperties() {
   try {
-    const res = await fetch("../../static/js/properties.json");
+    const res = await fetch("../../static/data/properties.json");
     const data = await res.json();
 
     allProperties = data
@@ -79,8 +134,43 @@ async function loadProperties() {
   }
 }
 
+async function loadPois() {
+  try {
+    const res = await fetch("../../static/data/poi_database.json");
+    const data = await res.json();
+
+    allPois = data
+      .map(item => ({
+        ...item,
+        poi_id: String(item.poi_id),
+        latitude: Number(item.latitude),
+        longitude: Number(item.longitude)
+      }))
+      .filter(item => (
+        POI_CATEGORY_CONFIG[item.category] &&
+        Number.isFinite(item.latitude) &&
+        Number.isFinite(item.longitude)
+      ));
+
+    document.querySelectorAll(".poi-toggle").forEach(button => {
+      const category = button.dataset.poiCategory;
+      const count = allPois.filter(item => item.category === category).length;
+      button.title = `${POI_CATEGORY_CONFIG[category].label} 시설 ${count.toLocaleString()}개`;
+    });
+
+    if (activePoiCategories.size) {
+      rebuildPoiIndex();
+      scheduleRender();
+    }
+  } catch (err) {
+    console.error("POI 데이터 로드 실패:", err);
+  }
+}
+
 function bindEvents() {
   naver.maps.Event.addListener(map, "idle", scheduleRender);
+  naver.maps.Event.addListener(map, "dragstart", closeAllInfoPopups);
+  naver.maps.Event.addListener(map, "zoomstart", closeAllInfoPopups);
 
   document.getElementById("searchBtn").addEventListener("click", applyFilters);
 
@@ -90,11 +180,24 @@ function bindEvents() {
 
   document.getElementById("typeFilter").addEventListener("change", applyFilters);
   document.getElementById("priceFilter").addEventListener("change", applyFilters);
+
+  document.querySelectorAll(".poi-toggle").forEach(button => {
+    button.addEventListener("click", () => togglePoiCategory(button));
+  });
+
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+      closeAllInfoPopups();
+    }
+  });
 }
 
 function scheduleRender() {
   clearTimeout(renderTimer);
-  renderTimer = setTimeout(render, 180);
+  renderTimer = setTimeout(() => {
+    render();
+    renderPois();
+  }, 180);
 }
 
 function applyFilters() {
@@ -238,6 +341,123 @@ function buildRegionFeatures(items, level) {
 }
 
 /* ===========================
+   POI Index
+=========================== */
+
+function getPoiVariant(item) {
+  if (
+    item.category === "공공기관" &&
+    /경찰서|경찰청|파출소|지구대/.test(
+      `${item.name || ""} ${item.subcategory || ""}`
+    )
+  ) {
+    return "police";
+  }
+
+  if (
+    item.category === "교육" &&
+    (
+      item.source_type === "kindergarten" ||
+      /유치원|어린이집|보육/.test(
+        `${item.name || ""} ${item.subcategory || ""}`
+      )
+    )
+  ) {
+    return "earlyEducation";
+  }
+
+  return null;
+}
+
+function getPoiMarkerConfig(category, variant) {
+  const categoryConfig = POI_CATEGORY_CONFIG[category];
+  const variantConfig = POI_VARIANT_CONFIG[variant];
+
+  return variantConfig
+    ? { ...categoryConfig, ...variantConfig }
+    : categoryConfig;
+}
+
+function togglePoiCategory(button) {
+  const category = button.dataset.poiCategory;
+  const willActivate = !activePoiCategories.has(category);
+
+  if (willActivate) {
+    activePoiCategories.add(category);
+  } else {
+    activePoiCategories.delete(category);
+  }
+
+  button.setAttribute("aria-pressed", String(willActivate));
+  closePoiInfoPopup();
+  rebuildPoiIndex();
+  scheduleRender();
+}
+
+function rebuildPoiIndex() {
+  clearPoiMarkers();
+  poiIndexes = new Map();
+
+  if (!allPois.length || !activePoiCategories.size) {
+    return;
+  }
+
+  activePoiCategories.forEach(category => {
+    const coordinateGroups = new Map();
+
+    allPois.forEach(item => {
+      if (item.category !== category) return;
+
+      const coordinateKey = `${item.latitude}|${item.longitude}`;
+
+      if (!coordinateGroups.has(coordinateKey)) {
+        coordinateGroups.set(coordinateKey, {
+          coordinateKey,
+          latitude: item.latitude,
+          longitude: item.longitude,
+          items: []
+        });
+      }
+
+      coordinateGroups.get(coordinateKey).items.push(item);
+    });
+
+    const features = Array.from(coordinateGroups.values()).map(group => ({
+      type: "Feature",
+      properties: {
+        markerType: "poi",
+        markerKey: `poi-${category}-${group.coordinateKey}`,
+        coordinateKey: group.coordinateKey,
+        category,
+        variant: getPoiVariant(group.items[0]),
+        items: group.items
+      },
+      geometry: {
+        type: "Point",
+        coordinates: [group.longitude, group.latitude]
+      }
+    }));
+
+    const index = new Supercluster({
+      radius: 56,
+      maxZoom: APP_MAX_ZOOM,
+      minPoints: 2,
+      map: props => ({
+        policeCount: props.variant === "police" ? 1 : 0,
+        earlyEducationCount: props.variant === "earlyEducation" ? 1 : 0
+      }),
+      reduce: (accumulated, props) => {
+        accumulated.policeCount += props.policeCount;
+        accumulated.earlyEducationCount += props.earlyEducationCount;
+      }
+    });
+
+    index.load(features);
+    poiIndexes.set(category, index);
+  });
+}
+
+/* ===========================
    Render
 =========================== */
 
@@ -265,6 +485,182 @@ function render() {
   }
 
   renderPropertiesFromIndex(bbox);
+}
+
+function renderPois() {
+  const stage = getAppZoomStage(map.getZoom());
+
+  if (
+    !poiIndexes.size ||
+    stage <= DONG_STAGE_MAX
+  ) {
+    clearPoiMarkers();
+    return;
+  }
+
+  const bbox = getBbox(map.getBounds());
+  const zoom = map.getZoom();
+  const visibleFeatures = [];
+
+  for (const [category, index] of poiIndexes.entries()) {
+    const remaining = MAX_VISIBLE_POI_MARKERS - visibleFeatures.length;
+
+    if (remaining <= 0) break;
+
+    index
+      .getClusters(bbox, zoom)
+      .slice(0, remaining)
+      .forEach(feature => {
+        visibleFeatures.push({ category, index, feature });
+      });
+  }
+
+  const nextKeys = new Set();
+
+  visibleFeatures.forEach(({ category, index, feature }) => {
+    const [lng, lat] = feature.geometry.coordinates;
+    const props = feature.properties;
+    const key = props.cluster
+      ? `poi-cluster-${category}-${props.cluster_id}`
+      : props.markerKey;
+
+    nextKeys.add(key);
+
+    if (!poiMarkerMap.has(key)) {
+      const marker = props.cluster
+        ? createPoiClusterMarker(feature, lat, lng, index, category)
+        : createPoiMarker(feature, lat, lng);
+
+      poiMarkerMap.set(key, marker);
+    } else {
+      poiMarkerMap.get(key).setPosition(new naver.maps.LatLng(lat, lng));
+    }
+  });
+
+  removeUnusedPoiMarkers(nextKeys);
+}
+
+function renderPoiMarkerContent(category, config, title, count = 0) {
+  const badge = count > 1
+    ? `<span class="poi-marker-badge">${count > 99 ? "99+" : count.toLocaleString()}</span>`
+    : "";
+
+  if (category === "중개") {
+    return `
+      <div class="brokerage-marker" title="${escapeHtml(title)}">
+        <svg class="brokerage-marker-shape" viewBox="0 0 42 48" aria-hidden="true">
+          <path class="brokerage-marker-house"
+                d="M21 2 39 14v21c0 2.2-1.8 4-4 4h-7l-7 8-7-8H7c-2.2 0-4-1.8-4-4V14L21 2Z"></path>
+          <path class="brokerage-marker-roof"
+                d="M21 2 39 14v5L21 8 3 19v-5L21 2Z"></path>
+        </svg>
+        <span class="brokerage-marker-sign">중개</span>
+        ${badge}
+      </div>
+    `;
+  }
+
+  return `
+    <div class="poi-marker ${config.className}" title="${escapeHtml(title)}">
+      <svg class="poi-marker-icon" viewBox="0 0 24 24" aria-hidden="true">
+        ${config.icon}
+      </svg>
+      ${badge}
+    </div>
+  `;
+}
+
+function getPoiMarkerAnchor(category) {
+  return category === "중개"
+    ? new naver.maps.Point(21, 47)
+    : new naver.maps.Point(15, 15);
+}
+
+function createPoiClusterMarker(feature, lat, lng, index, category) {
+  const props = feature.properties;
+  const clusterId = props.cluster_id;
+  const count = Number(props.point_count || 0);
+  let variant = null;
+
+  if (Number(props.policeCount || 0) === count) {
+    variant = "police";
+  } else if (Number(props.earlyEducationCount || 0) === count) {
+    variant = "earlyEducation";
+  }
+
+  const config = getPoiMarkerConfig(category, variant);
+  const marker = new naver.maps.Marker({
+    position: new naver.maps.LatLng(lat, lng),
+    map,
+    zIndex: 180,
+    icon: {
+      content: renderPoiMarkerContent(
+        category,
+        config,
+        `${config.label} 시설 ${count.toLocaleString()}곳`,
+        count
+      ),
+      anchor: getPoiMarkerAnchor(category)
+    }
+  });
+
+  naver.maps.Event.addListener(marker, "click", () => {
+    const position = marker.getPosition();
+
+    if (map.getZoom() < APP_MAX_ZOOM) {
+      const nextZoom = Math.min(
+        index.getClusterExpansionZoom(clusterId),
+        APP_MAX_ZOOM
+      );
+
+      moveMapTo(position, nextZoom);
+      return;
+    }
+
+    const items = getPoiItemsFromCluster(index, clusterId, props.point_count);
+    openPoiInfoPopup(items, position);
+  });
+
+  return marker;
+}
+
+function createPoiMarker(feature, lat, lng) {
+  const items = feature.properties.items || [];
+  const categories = [...new Set(items.map(item => item.category))];
+  const category = categories[0];
+  const config = categories.length === 1
+    ? getPoiMarkerConfig(category, feature.properties.variant)
+    : {
+        label: "주변 시설",
+        className: "mixed",
+        icon: '<circle cx="7" cy="12" r="2"/><circle cx="17" cy="7" r="2"/><circle cx="16" cy="17" r="2"/><path d="m9 11 6-3m-6 5 5 3"/>'
+      };
+  const marker = new naver.maps.Marker({
+    position: new naver.maps.LatLng(lat, lng),
+    map,
+    zIndex: 190,
+    icon: {
+      content: renderPoiMarkerContent(
+        category,
+        config,
+        items[0]?.name || config.label,
+        items.length
+      ),
+      anchor: getPoiMarkerAnchor(category)
+    }
+  });
+
+  naver.maps.Event.addListener(marker, "click", () => {
+    openPoiInfoPopup(items, marker.getPosition());
+  });
+
+  return marker;
+}
+
+function getPoiItemsFromCluster(index, clusterId, pointCount) {
+  return index
+    .getLeaves(clusterId, pointCount, 0)
+    .flatMap(leaf => leaf.properties.items || []);
 }
 
 function renderRegionFromIndex(index, bbox, zoom, level) {
@@ -354,12 +750,19 @@ function createPropertyClusterMarker(feature, lat, lng) {
     icon: {
       content: `
         <div class="cluster-marker">
+          <svg class="cluster-marker-shape" viewBox="0 0 62 60" aria-hidden="true">
+            <path d="M2 20Q1 18 3 17L28 2Q31 0 34 2L59 17Q61 18 60 20T57 22H56V56Q56 58 54 58H8Q6 58 6 56V22H5Q3 22 2 20Z"></path>
+            <path class="cluster-marker-roof-highlight" d="M4 17.5 28.5 2.7Q31 1.2 33.5 2.7L58 17.5Q59.5 18.5 58.5 20H3.5Q2.5 18.5 4 17.5Z"></path>
+          </svg>
           <div class="cluster-count">${formatAreaPyeong(averageArea)}</div>
           <div class="cluster-label">${formatPriceToEok(averagePrice)}</div>
           <div class="cluster-size">(${itemCount.toLocaleString()})</div>
         </div>
       `,
-      anchor: new naver.maps.Point(35, 35)
+      anchor: new naver.maps.Point(
+        PROPERTY_CLUSTER_MARKER_WIDTH / 2,
+        PROPERTY_CLUSTER_MARKER_HEIGHT / 2
+      )
     }
   });
 
@@ -469,6 +872,10 @@ function createPropertyMarker(item) {
     icon: {
       content: `
         <div class="property-marker">
+          <svg class="property-marker-shape" viewBox="0 0 62 58" aria-hidden="true">
+            <path d="M2 20Q1 18 3 17L28 2Q31 0 34 2L59 17Q61 18 60 20T57 22H56V54Q56 56 54 56H8Q6 56 6 54V22H5Q3 22 2 20Z"></path>
+            <path class="property-marker-roof-highlight" d="M4 17.5 28.5 2.7Q31 1.2 33.5 2.7L58 17.5Q59.5 18.5 58.5 20H3.5Q2.5 18.5 4 17.5Z"></path>
+          </svg>
           <div class="property-area">${formatAreaPyeong(item.exclusive_area)}</div>
           <div class="property-marker-price">
               <span class="deal-type">매</span>
@@ -476,7 +883,10 @@ function createPropertyMarker(item) {
           </div>
         </div>
       `,
-      anchor: new naver.maps.Point(36, 34)
+      anchor: new naver.maps.Point(
+        PROPERTY_MARKER_WIDTH / 2,
+        PROPERTY_MARKER_HEIGHT / 2
+      )
     }
   });
 
@@ -523,21 +933,22 @@ function renderList(items) {
     `;
 
     card.addEventListener("click", () => {
-      const pos = new naver.maps.LatLng(item.latitude, item.longitude);
+      const stage = getAppZoomStage(map.getZoom());
 
-      moveMapTo(pos, APP_MIN_ZOOM + 6); // 7단계
+      if (stage <= DONG_STAGE_MAX) {
+        const pos = new naver.maps.LatLng(item.latitude, item.longitude);
 
-      setTimeout(() => {
-        const key = `property-${item.id}`;
-        let marker = markerMap.get(key);
+        moveMapTo(pos, APP_MAX_ZOOM);
 
-        if (!marker) {
-          marker = createPropertyMarker(item);
-          markerMap.set(key, marker);
-        }
+        setTimeout(() => {
+          clearTimeout(renderTimer);
+          render();
+          showPropertyInfo(item);
+        }, 550);
+        return;
+      }
 
-        openInfoWindow(item, marker);
-      }, 550);
+      showPropertyInfo(item);
     });
 
     list.appendChild(card);
@@ -545,13 +956,16 @@ function renderList(items) {
 }
 
 /* ===========================
-   InfoWindow
+   Property Info Popup
 =========================== */
 
 function openInfoWindow(item, marker) {
+  closePoiInfoPopup();
+
   const html = `
     <div style="
       width:270px;
+      transform:translate(-50%, calc(-100% - ${PROPERTY_MARKER_HEIGHT / 2}px));
       background:white;
       border-radius:16px;
       box-shadow:0 4px 18px rgba(0,0,0,0.25);
@@ -580,8 +994,190 @@ function openInfoWindow(item, marker) {
     </div>
   `;
 
-  infoWindow.setContent(html);
-  infoWindow.open(map, marker);
+  closeInfoWindow();
+
+  infoMarker = new naver.maps.Marker({
+    position: marker.getPosition(),
+    map,
+    zIndex: 1000,
+    icon: {
+      content: html,
+      anchor: new naver.maps.Point(0, 0)
+    }
+  });
+}
+
+function showPropertyInfo(item) {
+  const key = `property-${item.id}`;
+  let marker = markerMap.get(key);
+
+  if (!marker) {
+    marker = createPropertyMarker(item);
+    markerMap.set(key, marker);
+  }
+
+  openInfoWindow(item, marker);
+}
+
+function closeInfoWindow() {
+  if (!infoMarker) return;
+
+  infoMarker.setMap(null);
+  infoMarker = null;
+}
+
+function openPoiInfoPopup(items, position) {
+  if (!items.length) return;
+
+  closeInfoWindow();
+  activePoiPopupItems = items;
+  activePoiPopupIndex = 0;
+  activePoiPopupPosition = position;
+  renderPoiInfoPopup();
+}
+
+function renderPoiInfoPopup() {
+  const item = activePoiPopupItems[activePoiPopupIndex];
+
+  if (!item || !activePoiPopupPosition) return;
+
+  if (poiInfoMarker) {
+    poiInfoMarker.setMap(null);
+  }
+
+  const config = POI_CATEGORY_CONFIG[item.category] || {
+    label: item.category || "주변 시설",
+    color: "#52627a"
+  };
+  const address = item.road_address || [
+    item.province,
+    item.city,
+    item.town
+  ].filter(Boolean).join(" ");
+  const phoneNumber = String(item.phone_number || "").trim();
+  const phone = phoneNumber
+    ? `
+        <div class="poi-info-phone">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6.6 3.5 9 8.3 6.9 10c1.2 2.7 3.4 4.9 6.1 6.1l1.7-2.1 4.8 2.4-.7 3.1c-.2.8-.9 1.3-1.7 1.3C9.5 20.3 3.7 14.5 3.2 6.9c0-.8.5-1.5 1.3-1.7l2.1-.7Z"/>
+          </svg>
+          ${escapeHtml(phoneNumber)}
+        </div>
+      `
+    : "";
+  const brokerageInfo = item.category === "중개"
+    ? `
+        <div class="poi-info-brokerage">
+          <div class="poi-info-brokerage-row">
+            <span>영업상태</span>
+            <strong class="poi-info-status${item.business_status === "영업중" ? " is-open" : ""}">
+              ${escapeHtml(item.business_status || "정보 없음")}
+            </strong>
+          </div>
+          <div class="poi-info-brokerage-row">
+            <span>중개업자</span>
+            <strong>${escapeHtml(item.representative_name || "정보 없음")}</strong>
+          </div>
+          <div class="poi-info-brokerage-row is-wide">
+            <span>등록번호</span>
+            <strong>${escapeHtml(item.registration_number || "정보 없음")}</strong>
+          </div>
+        </div>
+      `
+    : "";
+  const rawBusRoutes = Array.isArray(item.bus_routes)
+    ? item.bus_routes.filter(Boolean)
+    : [];
+  const busRoutes = rawBusRoutes.length <= MAX_BUS_ROUTES_PER_STOP
+    ? rawBusRoutes
+    : [];
+  const busRouteInfo = busRoutes.length
+    ? `
+        <div class="poi-info-routes">
+          <div class="poi-info-routes-label">
+            운행 버스 ${busRoutes.length.toLocaleString()}개
+          </div>
+          <div class="poi-info-route-list">
+            ${busRoutes.map(route => (
+              `<span class="poi-info-route">${escapeHtml(route)}</span>`
+            )).join("")}
+          </div>
+        </div>
+      `
+    : "";
+  const hasMultipleItems = activePoiPopupItems.length > 1;
+  const navigation = hasMultipleItems
+    ? `
+        <div class="poi-info-nav">
+          <button type="button"
+                  aria-label="이전 시설"
+                  onmousedown="event.stopPropagation()"
+                  onclick="event.stopPropagation(); changePoiPopupPage(-1)">‹</button>
+          <span class="poi-info-page">
+            ${activePoiPopupIndex + 1} / ${activePoiPopupItems.length}
+          </span>
+          <button type="button"
+                  aria-label="다음 시설"
+                  onmousedown="event.stopPropagation()"
+                  onclick="event.stopPropagation(); changePoiPopupPage(1)">›</button>
+        </div>
+      `
+    : "";
+  const html = `
+    <div class="poi-info-popup"
+         style="--poi-color:${config.color};--poi-popup-offset:${config.popupOffset || 22}px">
+      <div class="poi-info-accent"></div>
+      <div class="poi-info-body">
+        <div class="poi-info-category">
+          ${escapeHtml(config.label)} · ${escapeHtml(item.subcategory || "시설")}
+        </div>
+        <div class="poi-info-name">${escapeHtml(item.name || "이름 없는 시설")}</div>
+        <div class="poi-info-address">${escapeHtml(address || "주소 정보 없음")}</div>
+        ${brokerageInfo}
+        ${phone}
+        ${busRouteInfo}
+        ${navigation}
+      </div>
+    </div>
+  `;
+
+  poiInfoMarker = new naver.maps.Marker({
+    position: activePoiPopupPosition,
+    map,
+    zIndex: 1100,
+    icon: {
+      content: html,
+      anchor: new naver.maps.Point(0, 0)
+    }
+  });
+}
+
+function changePoiPopupPage(direction) {
+  const itemCount = activePoiPopupItems.length;
+
+  if (itemCount < 2) return;
+
+  activePoiPopupIndex = (
+    activePoiPopupIndex + direction + itemCount
+  ) % itemCount;
+
+  renderPoiInfoPopup();
+}
+
+function closePoiInfoPopup() {
+  if (poiInfoMarker) {
+    poiInfoMarker.setMap(null);
+    poiInfoMarker = null;
+  }
+
+  activePoiPopupItems = [];
+  activePoiPopupIndex = 0;
+  activePoiPopupPosition = null;
+}
+
+function closeAllInfoPopups() {
+  closeInfoWindow();
+  closePoiInfoPopup();
 }
 
 /* ===========================
@@ -625,6 +1221,23 @@ function removeUnusedMarkers(nextKeys) {
       markerMap.delete(key);
     }
   }
+}
+
+function removeUnusedPoiMarkers(nextKeys) {
+  for (const [key, marker] of poiMarkerMap.entries()) {
+    if (!nextKeys.has(key)) {
+      marker.setMap(null);
+      poiMarkerMap.delete(key);
+    }
+  }
+}
+
+function clearPoiMarkers() {
+  for (const marker of poiMarkerMap.values()) {
+    marker.setMap(null);
+  }
+
+  poiMarkerMap.clear();
 }
 
 function fitMapToData(items) {
@@ -719,4 +1332,13 @@ function formatAreaPyeong(area) {
 
   const pyeong = area / 3.3058;
   return `${Math.round(pyeong)}평`;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
