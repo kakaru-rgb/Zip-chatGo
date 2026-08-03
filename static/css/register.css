@@ -157,12 +157,60 @@ select:focus-visible,
   border-top:3px dashed var(--line-strong);
 }
 .flyer-teaser .fy-photo{
+  position:relative;
+  overflow:hidden;
   width:100%;
   aspect-ratio:16/10;
   border-radius:10px;
   background:url("../images/register_ex.png") center/cover no-repeat, var(--light);
   border:1px solid var(--line);
   margin-bottom:24px;
+}
+
+/* ---------- 사진 캐러셀 화살표 · 점 (예시 카드 / 실시간 미리보기 공용) ---------- */
+.fy-photo-nav{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  z-index:2;
+  width:34px;
+  height:34px;
+  border:0;
+  border-radius:50%;
+  background:rgba(15,23,42,0.5);
+  color:#fff;
+  font-size:13px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:0.2s var(--ease);
+}
+.fy-photo-nav:hover{ background:rgba(15,23,42,0.75); transform:translateY(-50%) scale(1.06); }
+.fy-photo-nav:active{ transform:translateY(-50%) scale(0.94); }
+.fy-photo-nav.prev{ left:10px; }
+.fy-photo-nav.next{ right:10px; }
+
+.fy-photo-dots{
+  position:absolute;
+  bottom:12px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:2;
+  display:flex;
+  gap:6px;
+}
+.fy-photo-dots span{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.55);
+  transition:0.2s ease;
+}
+.fy-photo-dots span.active{
+  width:16px;
+  border-radius:999px;
+  background:#fff;
 }
 .flyer-teaser .fy-badge{
   display:inline-block;
@@ -277,6 +325,12 @@ select:focus-visible,
 }
 
 .field{ margin-bottom:22px; }
+.price-hint{
+  font-size:12.5px;
+  font-weight:700;
+  color:var(--primary);
+  margin-top:7px;
+}
 .field label{
   display:block;
   font-size:13px;
@@ -737,11 +791,27 @@ select:focus-visible,
 .thumb:hover img{ transform:scale(1.06); }
 .thumb.main{ border-color:var(--accent); }
 .thumb .main-tag{
-  position:absolute; top:4px; left:4px;
+  position:absolute; bottom:4px; left:4px;
   background:var(--accent); color:#fff;
   font-size:10px; font-weight:800;
   padding:2px 6px; border-radius:6px;
 }
+.thumb-remove{
+  position:absolute;
+  top:5px; left:5px;
+  width:20px; height:20px;
+  border:0;
+  border-radius:50%;
+  background:rgba(15,23,42,0.6);
+  color:#fff;
+  font-size:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:0.15s ease;
+}
+.thumb-remove:hover{ background:var(--danger, #EF4444); }
 
 .form-nav{
   display:flex;
@@ -849,6 +919,8 @@ select:focus-visible,
 }
 
 .flyer-photo{
+  position:relative;
+  overflow:hidden;
   width:100%;
   aspect-ratio:4/3;
   border-radius:6px;
@@ -861,7 +933,17 @@ select:focus-visible,
   text-align:center;
   margin-bottom:16px;
   border:1px dashed var(--line);
-  transition:background 0.25s ease;
+  transition:background 0.25s ease, border-color 0.25s ease;
+}
+.flyer-photo.has-photo{
+  border-style:solid;
+  border-color:var(--line-strong);
+}
+.flyer-photo-hint{
+  position:relative;
+  z-index:1;
+  padding:0 20px;
+  line-height:1.6;
 }
 .flyer-deal{
   display:inline-block;

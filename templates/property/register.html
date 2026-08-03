@@ -42,7 +42,11 @@
       <a href="#registerForm" class="cta-btn">지금 등록하기 <i class="fa-solid fa-arrow-right"></i></a>
     </div>
     <div class="flyer-teaser" aria-hidden="true">
-      <div class="fy-photo"></div>
+      <div class="fy-photo" id="fyPhoto">
+        <button type="button" class="fy-photo-nav prev" id="fyPhotoPrev" aria-label="이전 사진"><i class="fa-solid fa-chevron-left"></i></button>
+        <button type="button" class="fy-photo-nav next" id="fyPhotoNext" aria-label="다음 사진"><i class="fa-solid fa-chevron-right"></i></button>
+        <div class="fy-photo-dots" id="fyPhotoDots"></div>
+      </div>
       <span class="fy-badge">매매</span>
       <div class="fy-price">4억 8,000</div>
       <div class="fy-addr">서울 마포구 합정동</div>
@@ -248,7 +252,7 @@
         <p class="step-desc">밝고 선명한 사진일수록 문의가 빨리 와요. 첫 번째 사진이 대표 사진이 돼요.</p>
         <label class="upload-box" for="photoInput">
           <i class="fa-solid fa-camera"></i>
-          클릭해서 사진 올리기 (여러 장 선택 가능)
+          클릭해서 사진 올리기 (여러 장 선택 가능, 최대 10장)
         </label>
         <input type="file" id="photoInput" accept="image/*" multiple style="display:none">
         <div class="thumb-grid" id="thumbGrid"></div>
@@ -262,15 +266,18 @@
         <div class="field" id="saleFields">
           <label for="price">매매가 (만원)</label>
           <input type="text" id="price" placeholder="예: 48000">
+          <p class="price-hint" id="priceHint"></p>
         </div>
         <div class="field-row" id="rentFields" style="display:none">
           <div class="field">
             <label for="deposit">보증금 (만원)</label>
             <input type="text" id="deposit" placeholder="예: 3000">
+            <p class="price-hint" id="depositHint"></p>
           </div>
           <div class="field">
             <label for="monthly">월세 (만원)</label>
             <input type="text" id="monthly" placeholder="예: 60">
+            <p class="price-hint" id="monthlyHint"></p>
           </div>
         </div>
 
@@ -302,7 +309,12 @@
     <aside class="preview-flyer">
       <p class="preview-label"><i class="fa-solid fa-eye"></i>구매자에게 이렇게 보여요</p>
       <div class="flyer-card" id="flyerCard" role="button" tabindex="0" aria-label="상세정보 보기">
-        <div class="flyer-photo" id="flyerPhoto">사진을 올리면<br>여기에 표시돼요</div>
+        <div class="flyer-photo" id="flyerPhoto">
+          <span class="flyer-photo-hint" id="flyerPhotoHint">사진을 올리면<br>여기에 표시돼요</span>
+          <button type="button" class="fy-photo-nav prev" id="flyerPhotoPrev" aria-label="이전 사진" style="display:none"><i class="fa-solid fa-chevron-left"></i></button>
+          <button type="button" class="fy-photo-nav next" id="flyerPhotoNext" aria-label="다음 사진" style="display:none"><i class="fa-solid fa-chevron-right"></i></button>
+          <div class="fy-photo-dots" id="flyerPhotoDots"></div>
+        </div>
         <span class="flyer-deal" id="flyerDeal">매매</span>
         <div class="flyer-price" id="flyerPrice">가격 미입력</div>
         <div class="flyer-addr" id="flyerAddr">주소를 입력해주세요</div>
@@ -731,28 +743,30 @@
 
   function searchAddress(query) {
     return new Promise((resolve) => {
-      if (!kakaoGeocoder) {
-        console.warn('[카카오맵] Geocoder가 아직 준비되지 않았어요.');
-        resolve([]);
-        return;
-      }
-      kakaoGeocoder.addressSearch(query, (result, status) => {
-        if (status === kakao.maps.services.Status.OK && result.length) {
-          resolve(result.map(item => ({
-            text: (item.road_address && item.road_address.address_name) || item.address.address_name,
+      if (!kakaoPlaces) kakaoPlaces = new kakao.maps.services.Places();
+
+      // 키워드(장소) 검색을 먼저 시도해요. addressSearch보다 관대해서
+      // "판교로25번길 8-1"처럼 건물번호까지 타이핑하는 중에도 후보를 잘 찾아줘요.
+      kakaoPlaces.keywordSearch(query, (places, placesStatus) => {
+        if (placesStatus === kakao.maps.services.Status.OK && places.length) {
+          resolve(places.map(item => ({
+            text: item.road_address_name || item.address_name || item.place_name,
             lng: Number(item.x),
             lat: Number(item.y)
           })));
           return;
         }
 
-        // 도로명 + 건물번호 조합 등은 addressSearch가 못 찾는 경우가 있어서,
-        // 키워드(장소) 검색으로 한 번 더 시도해요.
-        if (!kakaoPlaces) kakaoPlaces = new kakao.maps.services.Places();
-        kakaoPlaces.keywordSearch(query, (places, placesStatus) => {
-          if (placesStatus === kakao.maps.services.Status.OK) {
-            resolve(places.map(item => ({
-              text: item.road_address_name || item.address_name || item.place_name,
+        // 키워드 검색이 비어있으면, 정확한 주소 매칭용 addressSearch로 한 번 더 시도해요.
+        if (!kakaoGeocoder) {
+          console.warn('[카카오맵] Geocoder가 아직 준비되지 않았어요.');
+          resolve([]);
+          return;
+        }
+        kakaoGeocoder.addressSearch(query, (result, status) => {
+          if (status === kakao.maps.services.Status.OK) {
+            resolve(result.map(item => ({
+              text: (item.road_address && item.road_address.address_name) || item.address.address_name,
               lng: Number(item.x),
               lat: Number(item.y)
             })));
@@ -916,18 +930,25 @@
     });
   });
 
-  // ---------- 사진 업로드 & 미리보기 ----------
+  // ---------- 사진 업로드 & 미리보기 (최대 10장, 화살표로 넘겨보기) ----------
   const photoInput = document.getElementById('photoInput');
   const thumbGrid = document.getElementById('thumbGrid');
   const flyerPhoto = document.getElementById('flyerPhoto');
+  const flyerPhotoHint = document.getElementById('flyerPhotoHint');
+  const flyerPhotoPrev = document.getElementById('flyerPhotoPrev');
+  const flyerPhotoNext = document.getElementById('flyerPhotoNext');
+  const flyerPhotoDots = document.getElementById('flyerPhotoDots');
+  const PHOTO_MAX = 10;
   let photos = [];
+  let flyerPhotoIndex = 0;
 
   photoInput.addEventListener('change', (e) => {
-    const files = Array.from(e.target.files).slice(0, 8 - photos.length);
+    const files = Array.from(e.target.files).slice(0, PHOTO_MAX - photos.length);
     files.forEach(file => {
       const reader = new FileReader();
       reader.onload = (ev) => {
         photos.push(ev.target.result);
+        flyerPhotoIndex = photos.length - 1; // 방금 올린 사진을 바로 보여줘요
         renderThumbs();
       };
       reader.readAsDataURL(file);
@@ -939,19 +960,120 @@
     photos.forEach((src, i) => {
       const div = document.createElement('div');
       div.className = 'thumb' + (i === 0 ? ' main' : '');
-      div.innerHTML = `<img src="${src}" alt="매물 사진 ${i + 1}">` + (i === 0 ? '<span class="main-tag">대표</span>' : '');
+      div.innerHTML = `
+        <img src="${src}" alt="매물 사진 ${i + 1}">
+        ${i === 0 ? '<span class="main-tag">대표</span>' : ''}
+        <button type="button" class="thumb-remove" data-index="${i}" aria-label="사진 삭제"><i class="fa-solid fa-xmark"></i></button>
+      `;
       thumbGrid.appendChild(div);
     });
-    flyerPhoto.style.backgroundImage = photos[0] ? `url(${photos[0]})` : '';
-    flyerPhoto.textContent = photos[0] ? '' : '사진을 올리면 여기에 표시돼요';
+    thumbGrid.querySelectorAll('.thumb-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = Number(btn.dataset.index);
+        photos.splice(i, 1);
+        if (flyerPhotoIndex >= photos.length) flyerPhotoIndex = Math.max(0, photos.length - 1);
+        renderThumbs();
+      });
+    });
+    renderFlyerPhotoCarousel();
   }
 
-  // ---------- 가격 입력 콤마 포맷 ----------
+  function renderFlyerPhotoCarousel() {
+    const hasPhotos = photos.length > 0;
+    if (flyerPhotoIndex > photos.length - 1) flyerPhotoIndex = Math.max(0, photos.length - 1);
+
+    flyerPhoto.style.backgroundImage = hasPhotos ? `url(${photos[flyerPhotoIndex]})` : '';
+    flyerPhoto.classList.toggle('has-photo', hasPhotos);
+    flyerPhotoHint.style.display = hasPhotos ? 'none' : '';
+
+    const showNav = photos.length > 1;
+    flyerPhotoPrev.style.display = showNav ? '' : 'none';
+    flyerPhotoNext.style.display = showNav ? '' : 'none';
+    flyerPhotoDots.innerHTML = showNav
+      ? photos.map((_, i) => `<span class="${i === flyerPhotoIndex ? 'active' : ''}"></span>`).join('')
+      : '';
+  }
+
+  flyerPhotoPrev.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!photos.length) return;
+    flyerPhotoIndex = (flyerPhotoIndex - 1 + photos.length) % photos.length;
+    renderFlyerPhotoCarousel();
+  });
+  flyerPhotoNext.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!photos.length) return;
+    flyerPhotoIndex = (flyerPhotoIndex + 1) % photos.length;
+    renderFlyerPhotoCarousel();
+  });
+
+  // ---------- 히어로 예시 카드 사진 캐러셀 (register_ex_1.png ~ register_ex_10.png) ----------
+  function preloadImage(path) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(path);
+      img.onerror = () => resolve(null);
+      img.src = path;
+    });
+  }
+
+  async function initFyPhotoCarousel() {
+    const numberedCandidates = [];
+    for (let i = 1; i <= 10; i++) numberedCandidates.push(`../../static/images/register_ex_${i}.png`);
+
+    const numberedResults = await Promise.all(numberedCandidates.map(preloadImage));
+    let slides = numberedResults.filter(Boolean);
+
+    if (!slides.length) {
+      // 번호 붙은 파일이 없으면, 기존 단일 파일(register_ex.png)로 대신해요.
+      const fallback = await preloadImage('../../static/images/register_ex.png');
+      if (fallback) slides = [fallback];
+    }
+    if (!slides.length) return; // 예시 사진이 하나도 없으면 빈 배경으로 둬요.
+
+    let idx = 0;
+    const fyPhoto = document.getElementById('fyPhoto');
+    const dotsEl = document.getElementById('fyPhotoDots');
+    const prevBtn = document.getElementById('fyPhotoPrev');
+    const nextBtn = document.getElementById('fyPhotoNext');
+
+    function render() {
+      fyPhoto.style.backgroundImage = `url("${slides[idx]}")`;
+      dotsEl.innerHTML = slides.length > 1
+        ? slides.map((_, i) => `<span class="${i === idx ? 'active' : ''}"></span>`).join('')
+        : '';
+    }
+    if (slides.length <= 1) {
+      prevBtn.style.display = 'none';
+      nextBtn.style.display = 'none';
+    } else {
+      prevBtn.addEventListener('click', () => { idx = (idx - 1 + slides.length) % slides.length; render(); });
+      nextBtn.addEventListener('click', () => { idx = (idx + 1) % slides.length; render(); });
+    }
+    render();
+  }
+  initFyPhotoCarousel();
+
+  // ---------- 억/만원 단위 변환 (가독성용) ----------
+  function formatKoreanPrice(manwon) {
+    const num = Number(manwon);
+    if (!num || isNaN(num)) return '';
+    const eok = Math.floor(num / 10000);
+    const rest = num % 10000;
+    if (eok > 0 && rest > 0) return `${eok}억 ${rest.toLocaleString('ko-KR')}만원`;
+    if (eok > 0) return `${eok}억원`;
+    return `${num.toLocaleString('ko-KR')}만원`;
+  }
+
+  // ---------- 가격 입력 콤마 포맷 + 억/만원 실시간 변환 힌트 ----------
+  const priceHintMap = { price: 'priceHint', deposit: 'depositHint', monthly: 'monthlyHint' };
   ['price', 'deposit', 'monthly'].forEach(id => {
     const el = document.getElementById(id);
+    const hintEl = document.getElementById(priceHintMap[id]);
     el.addEventListener('input', () => {
       const digits = el.value.replace(/[^0-9]/g, '');
       el.value = digits ? Number(digits).toLocaleString('ko-KR') : '';
+      if (hintEl) hintEl.textContent = digits ? `= ${formatKoreanPrice(digits)}` : '';
       updatePreview();
     });
   });
@@ -982,14 +1104,16 @@
 
     if (deal === '매매') {
       const price = document.getElementById('price').value;
-      flyerPrice.textContent = price ? `${price}만원` : '가격 미입력';
+      flyerPrice.textContent = price ? formatKoreanPrice(price.replace(/[^0-9]/g, '')) : '가격 미입력';
     } else if (deal === '전세') {
       const deposit = document.getElementById('deposit').value;
-      flyerPrice.textContent = deposit ? `전세 ${deposit}만원` : '보증금 미입력';
+      flyerPrice.textContent = deposit ? `전세 ${formatKoreanPrice(deposit.replace(/[^0-9]/g, ''))}` : '보증금 미입력';
     } else {
       const deposit = document.getElementById('deposit').value;
       const monthly = document.getElementById('monthly').value;
-      flyerPrice.textContent = (deposit || monthly) ? `${deposit || 0}/${monthly || 0}만원` : '보증금/월세 미입력';
+      flyerPrice.textContent = (deposit || monthly)
+        ? `${formatKoreanPrice(deposit.replace(/[^0-9]/g, '')) || '0만원'} / ${formatKoreanPrice(monthly.replace(/[^0-9]/g, '')) || '0만원'}`
+        : '보증금/월세 미입력';
     }
 
     const addr1 = document.getElementById('addr1').value;

@@ -107,12 +107,12 @@ nav a:hover{
 .hero-content p{
     max-width:570px;
     margin:0 auto 34px;
-    color:rgb(245, 245, 4);
-    font-size:18px;
-    font-weight:400;
+    color:#f4e4bc;
+    font-size:20px;
+    font-weight:500;
     line-height:1.85;
     letter-spacing:-.02em;
-    text-shadow:0 2px 8px rgba(0, 0, 0, .75);
+    text-shadow:0 2px 12px rgba(0, 0, 0, .85), 0 0 30px rgba(212, 175, 55, 0.3);
 }
 
 .hero-content button{
@@ -143,6 +143,40 @@ nav a:hover{
 }
 
 .hero-content button:focus-visible{
+    outline:3px solid #fff;
+    outline-offset:4px;
+}
+
+.hero-content a.btn-primary{
+    position:relative;
+    display:inline-block;
+    min-width:205px;
+    padding:16px 30px;
+    border:1px solid rgba(212, 175, 55, .8);
+    border-radius:999px;
+    background:linear-gradient(135deg, #d4af37 0%, #f4e4bc 50%, #d4af37 100%);
+    box-shadow:0 12px 25px rgba(212, 175, 55, .4), inset 0 1px 1px rgba(255, 255, 255, .55);
+    color:#0a0a0a;
+    cursor:pointer;
+    font-size:20px;
+    font-weight:800;
+    letter-spacing:-.02em;
+    text-decoration:none;
+    transition:transform .25s ease, box-shadow .25s ease, filter .25s ease;
+}
+
+.hero-content a.btn-primary:hover{
+    filter:brightness(1.07);
+    transform:translateY(-3px);
+    box-shadow:0 18px 30px rgba(0, 0, 0, .32), inset 0 1px 1px rgba(255, 255, 255, .65);
+}
+
+.hero-content a.btn-primary:active{
+    transform:translateY(0);
+    box-shadow:0 8px 16px rgba(0, 0, 0, .25);
+}
+
+.hero-content a.btn-primary:focus-visible{
     outline:3px solid #fff;
     outline-offset:4px;
 }
