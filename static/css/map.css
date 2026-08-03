@@ -214,73 +214,83 @@ header h1 {
 
 .cluster-marker {
   position: relative;
-  width: 70px;
-  height: 70px;
+  isolation: isolate;
+  width: 62px;
+  height: 60px;
 
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  padding-top: 16px;
+  padding-top: 17px;
 
-  background: rgba(255, 255, 255, 0.92);
   color: var(--white);
-  clip-path: polygon(
-    50% 0,
-    100% 34%,
-    89% 34%,
-    89% 100%,
-    11% 100%,
-    11% 34%,
-    0 34%
-  );
 
-  filter: drop-shadow(0 10px 12px rgba(30, 136, 255, 0.28));
+  filter:
+    drop-shadow(0 2px 3px rgba(17, 45, 78, 0.16))
+    drop-shadow(0 7px 9px rgba(30, 136, 255, 0.2));
   cursor: pointer;
-  transition: 0.2s ease;
+  transition:
+    filter 150ms ease,
+    transform 150ms ease;
 }
 
-.cluster-marker::before {
+.cluster-marker-shape {
   position: absolute;
-  inset: 4px;
-  z-index: -1;
+  inset: 0;
+  z-index: 0;
 
-  background: var(--gradient-main);
-  clip-path: inherit;
-  content: "";
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.cluster-marker-shape > path:first-child {
+  fill: var(--primary);
+}
+
+.cluster-marker-roof-highlight {
+  fill: rgba(255, 255, 255, 0.12);
+  pointer-events: none;
 }
 
 .cluster-marker:hover {
-  transform: scale(1.06);
+  filter:
+    drop-shadow(0 2px 3px rgba(17, 45, 78, 0.18))
+    drop-shadow(0 8px 11px rgba(30, 136, 255, 0.28));
+  transform: scale(1.04);
 }
 
 .cluster-count {
   position: relative;
   z-index: 1;
 
-  font-size: 10px;
-  font-weight: 900;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 9px;
+  font-weight: 800;
   line-height: 1.1;
+  letter-spacing: -0.2px;
 }
 
 .cluster-label {
   position: relative;
   z-index: 1;
 
-  margin-top: 3px;
-  font-size: 13px;
+  margin-top: 2px;
+  font-size: 12px;
   font-weight: 900;
   line-height: 1;
+  letter-spacing: -0.3px;
 }
 
 .cluster-size {
   position: relative;
   z-index: 1;
 
-  margin-top: 3px;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 9px;
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 8px;
   font-weight: 800;
   line-height: 1;
 }
@@ -405,57 +415,67 @@ header h1 {
 
 .property-marker {
   position: relative;
-  width: 72px;
-  height: 68px;
+  isolation: isolate;
+  width: 62px;
+  height: 58px;
 
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  padding-top: 17px;
+  padding-top: 18px;
 
-  background: rgba(255, 255, 255, 0.94);
   color: var(--white);
-  clip-path: polygon(
-    50% 0,
-    100% 34%,
-    89% 34%,
-    89% 100%,
-    11% 100%,
-    11% 34%,
-    0 34%
-  );
 
   text-align: center;
   white-space: nowrap;
   cursor: pointer;
 
-  filter: drop-shadow(0 9px 11px rgba(30, 136, 255, 0.28));
+  filter:
+    drop-shadow(0 2px 3px rgba(17, 45, 78, 0.16))
+    drop-shadow(0 7px 9px rgba(30, 136, 255, 0.2));
+  transition: filter 150ms ease;
 }
 
-.property-marker::before {
-  position: absolute;
-  inset: 4px;
-  z-index: -1;
+.property-marker:hover {
+  filter:
+    drop-shadow(0 2px 3px rgba(17, 45, 78, 0.18))
+    drop-shadow(0 8px 11px rgba(30, 136, 255, 0.28));
+}
 
-  background: var(--gradient-main);
-  clip-path: inherit;
-  content: "";
+.property-marker-shape {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.property-marker-shape > path:first-child {
+  fill: var(--primary);
+}
+
+.property-marker-roof-highlight {
+  fill: rgba(255, 255, 255, 0.12);
+  pointer-events: none;
 }
 
 .property-area {
   position: relative;
   z-index: 1;
 
-  color: var(--white);
-  font-size: 11px;
-  font-weight: 900;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 10px;
+  font-weight: 800;
   line-height: 1.1;
+  letter-spacing: -0.2px;
 }
 
 .property-marker-price {
-  margin-top: 4px;
+  margin-top: 3px;
 
   display: flex;
   align-items: baseline;
@@ -482,9 +502,10 @@ header h1 {
   display: inline-block;
 
   color: var(--white);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 900;
   line-height: 1;
+  letter-spacing: -0.35px;
 }
 
 /* 기존 price-marker를 다른 코드에서 사용할 경우 */
@@ -519,4 +540,527 @@ header h1 {
   color: var(--gray);
   font-size: 13px;
   line-height: 1.4;
+}
+
+/* ===========================
+   POI Category Controls
+=========================== */
+
+.poi-controls {
+  grid-area: 1 / 1;
+  align-self: center;
+  justify-self: end;
+  z-index: 12;
+
+  margin: 0 16px 0 0;
+  padding: 10px;
+
+  border: 1px solid rgba(30, 136, 255, 0.1);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 10px 28px rgba(17, 45, 78, 0.14);
+  backdrop-filter: blur(12px);
+}
+
+.poi-controls-title {
+  margin-bottom: 8px;
+
+  color: #52627a;
+  font-size: 11px;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+.poi-toggle-list {
+  display: grid;
+  grid-template-columns: 58px;
+  gap: 7px;
+}
+
+.poi-toggle {
+  --poi-color: #52627a;
+  --poi-soft: #eef2f7;
+
+  min-height: 64px;
+  padding: 7px 5px 6px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  border: 1px solid transparent;
+  border-radius: 15px;
+  background: #f8fafc;
+  color: #66758a;
+  cursor: pointer;
+
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    color 0.18s ease;
+}
+
+.poi-toggle:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--poi-color) 24%, transparent);
+  background: var(--poi-soft);
+}
+
+.poi-toggle:focus-visible {
+  outline: 3px solid rgba(30, 136, 255, 0.2);
+  outline-offset: 2px;
+}
+
+.poi-toggle[aria-pressed="true"] {
+  transform: translateY(1px);
+  border-color: color-mix(in srgb, var(--poi-color) 38%, transparent);
+  background: var(--poi-soft);
+  color: var(--poi-color);
+  box-shadow:
+    inset 0 2px 5px color-mix(in srgb, var(--poi-color) 14%, transparent),
+    0 4px 10px color-mix(in srgb, var(--poi-color) 14%, transparent);
+}
+
+.poi-toggle.public {
+  --poi-color: #7a6fb5;
+  --poi-soft: #eeeafb;
+}
+
+.poi-toggle.education {
+  --poi-color: #44896f;
+  --poi-soft: #e3f4ed;
+}
+
+.poi-toggle.transport {
+  --poi-color: #397dae;
+  --poi-soft: #e2f1fa;
+}
+
+.poi-toggle.medical {
+  --poi-color: #c46978;
+  --poi-soft: #f9e8eb;
+}
+
+.poi-toggle.brokerage {
+  --poi-color: #b86f0b;
+  --poi-soft: #fff1ca;
+}
+
+.poi-toggle-icon {
+  width: 29px;
+  height: 29px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 10px;
+  background: var(--poi-soft);
+  color: var(--poi-color);
+}
+
+.poi-toggle-icon svg {
+  width: 18px;
+  height: 18px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.poi-toggle-label {
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* ===========================
+   POI Markers
+=========================== */
+
+.poi-marker {
+  --poi-color: #397dae;
+  --poi-soft: #e2f1fa;
+
+  position: relative;
+  width: 30px;
+  height: 30px;
+
+  display: grid;
+  place-items: center;
+
+  border: 2px solid var(--poi-color);
+  border-radius: 50%;
+  background: var(--poi-soft);
+  color: var(--poi-color);
+  box-shadow:
+    0 5px 14px rgba(17, 45, 78, 0.2),
+    0 1px 3px rgba(17, 45, 78, 0.14);
+
+  cursor: pointer;
+}
+
+.poi-marker-icon {
+  width: 15px;
+  height: 15px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.poi-marker.public {
+  --poi-color: #7a6fb5;
+  --poi-soft: #eeeafb;
+}
+
+.poi-marker.education {
+  --poi-color: #44896f;
+  --poi-soft: #e3f4ed;
+}
+
+.poi-marker.transport {
+  --poi-color: #397dae;
+  --poi-soft: #e2f1fa;
+}
+
+.poi-marker.medical {
+  --poi-color: #c46978;
+  --poi-soft: #f9e8eb;
+}
+
+.poi-marker.police {
+  --poi-color: #a94732;
+  --poi-soft: #f8e5df;
+}
+
+.poi-marker.early-education {
+  --poi-color: #a97b16;
+  --poi-soft: #fff1bd;
+}
+
+.poi-marker.mixed {
+  --poi-color: #596b82;
+  --poi-soft: #edf2f7;
+}
+
+/* 부동산 중개업소 전용 간판 마커 */
+
+.brokerage-marker {
+  --poi-color: #b86f0b;
+
+  position: relative;
+  width: 42px;
+  height: 48px;
+
+  cursor: pointer;
+  filter:
+    drop-shadow(0 2px 3px rgba(84, 52, 8, 0.2))
+    drop-shadow(0 8px 12px rgba(184, 111, 11, 0.28));
+  transition:
+    filter 160ms ease,
+    transform 160ms ease;
+}
+
+.brokerage-marker:hover {
+  filter:
+    drop-shadow(0 3px 4px rgba(84, 52, 8, 0.24))
+    drop-shadow(0 10px 15px rgba(184, 111, 11, 0.36));
+  transform: translateY(-2px);
+}
+
+.brokerage-marker-shape {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.brokerage-marker-house {
+  fill: #f2aa1c;
+}
+
+.brokerage-marker-roof {
+  fill: rgba(255, 255, 255, 0.2);
+}
+
+.brokerage-marker-sign {
+  position: absolute;
+  top: 19px;
+  left: 7px;
+
+  width: 28px;
+  height: 16px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 5px;
+  background: #fffaf0;
+  color: #5c3a07;
+  box-shadow: 0 2px 5px rgba(91, 57, 7, 0.2);
+
+  font-size: 10px;
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.brokerage-marker .poi-marker-badge {
+  top: -4px;
+  right: -7px;
+  background: #7b4906;
+}
+
+.poi-marker-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+
+  min-width: 19px;
+  height: 19px;
+  padding: 0 4px;
+
+  display: grid;
+  place-items: center;
+
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: var(--poi-color);
+  color: #fff;
+
+  font-size: 9px;
+  font-weight: 900;
+}
+
+/* ===========================
+   POI Information Popup
+=========================== */
+
+.poi-info-popup {
+  width: 260px;
+
+  border: 1px solid rgba(30, 136, 255, 0.11);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 12px 32px rgba(17, 45, 78, 0.22);
+  overflow: hidden;
+
+  transform: translate(-50%, calc(-100% - var(--poi-popup-offset, 22px)));
+}
+
+.poi-info-accent {
+  height: 5px;
+  background: var(--poi-color, var(--primary));
+}
+
+.poi-info-body {
+  padding: 14px 15px 13px;
+}
+
+.poi-info-category {
+  margin-bottom: 6px;
+
+  color: var(--poi-color, var(--primary));
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.poi-info-name {
+  margin-bottom: 7px;
+
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.poi-info-address {
+  min-height: 36px;
+
+  color: #65748a;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.poi-info-brokerage {
+  margin-top: 10px;
+  padding: 9px 10px;
+
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--poi-color) 8%, #fff);
+}
+
+.poi-info-brokerage-row {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.poi-info-brokerage-row.is-wide {
+  grid-column: 1 / -1;
+}
+
+.poi-info-brokerage-row span {
+  color: #8490a1;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.poi-info-brokerage-row strong {
+  color: #455268;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.poi-info-brokerage-row .poi-info-status {
+  width: fit-content;
+  color: #a35f09;
+}
+
+.poi-info-brokerage-row .poi-info-status.is-open {
+  color: #288260;
+}
+
+.poi-info-phone {
+  width: fit-content;
+  margin-top: 9px;
+  padding: 6px 9px;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--poi-color) 10%, #fff);
+  color: var(--poi-color);
+
+  font-size: 12px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.poi-info-phone svg {
+  width: 14px;
+  height: 14px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.poi-info-routes {
+  margin-top: 11px;
+}
+
+.poi-info-routes-label {
+  margin-bottom: 6px;
+
+  color: #65748a;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.poi-info-route-list {
+  max-height: 92px;
+
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 5px;
+
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--poi-color) 35%, transparent) transparent;
+}
+
+.poi-info-route {
+  padding: 5px 8px;
+
+  border: 1px solid color-mix(in srgb, var(--poi-color) 30%, #fff);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--poi-color) 10%, #fff);
+  color: var(--poi-color);
+
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.poi-info-nav {
+  margin-top: 12px;
+  padding-top: 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  border-top: 1px solid #edf1f5;
+}
+
+.poi-info-nav button {
+  width: 30px;
+  height: 30px;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid rgba(30, 136, 255, 0.12);
+  border-radius: 10px;
+  background: #f5f8fb;
+  color: #52627a;
+
+  font-size: 17px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.poi-info-nav button:hover {
+  border-color: rgba(30, 136, 255, 0.25);
+  background: #edf6ff;
+  color: var(--primary);
+}
+
+.poi-info-page {
+  color: #7a8799;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+@media (max-width: 700px) {
+  .poi-controls {
+    align-self: center;
+    justify-self: end;
+
+    margin: 0 10px 0 0;
+    padding: 8px 10px;
+  }
+
+  .poi-toggle-list {
+    grid-template-columns: 56px;
+  }
+
+  .poi-toggle {
+    min-height: 58px;
+  }
 }
