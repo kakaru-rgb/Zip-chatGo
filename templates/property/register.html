@@ -202,22 +202,27 @@
           <p class="custom-tag-note">최대 5개까지 직접 추가할 수 있어요.</p>
         </div>
 
-        <div class="subsection-title"><i class="fa-solid fa-train-subway"></i> 교통정보</div>
-        <div class="field">
-          <label>지하철역까지 도보 시간 (최대 3개)</label>
-          <div class="transit-fixed-row">
-            <input type="text" id="transitStation1" placeholder="예: 합정역 2호선">
-            <input type="number" id="transitMinutes1" placeholder="도보 분" min="1" max="60">
+        <div class="subsection-title">
+          <i class="fa-solid fa-train-subway"></i> 교통정보
+          <span class="badge-auto" id="transitAutoBadge" style="display:none">자동입력</span>
+        </div>
+        <div class="school-auto-panel" id="transitAutoPanel">
+          <div class="school-auto-empty" id="transitAutoEmpty">
+            <i class="fa-solid fa-location-dot"></i>
+            <p>1단계에서 주소를 입력하고 '위치 확인'을 누르면<br>가까운 지하철역·버스정류장이 자동으로 채워져요.</p>
           </div>
-          <div class="transit-fixed-row">
-            <input type="text" id="transitStation2" placeholder="두 번째 역 (선택)">
-            <input type="number" id="transitMinutes2" placeholder="도보 분" min="1" max="60">
-          </div>
-          <div class="transit-fixed-row">
-            <input type="text" id="transitStation3" placeholder="세 번째 역 (선택)">
-            <input type="number" id="transitMinutes3" placeholder="도보 분" min="1" max="60">
+          <div class="school-auto-result" id="transitAutoResult" style="display:none">
+            <div class="school-auto-row">
+              <span class="school-auto-level">지하철역</span>
+              <div class="school-auto-body" id="transitAutoBodySubway"></div>
+            </div>
+            <div class="school-auto-row">
+              <span class="school-auto-level">버스정류장</span>
+              <div class="school-auto-body" id="transitAutoBodyBus"></div>
+            </div>
           </div>
         </div>
+        <p class="custom-tag-note">교통정보는 입력이 아니라 주소 기준 직선거리로 자동 계산돼요. 실제 도보 경로 거리와는 다를 수 있어요.</p>
 
         <div class="subsection-title">
           <i class="fa-solid fa-graduation-cap"></i> 학군정보
@@ -351,15 +356,10 @@
         <div class="flyer-meta" id="flyerFee"></div>
       </div>
       <div class="detail-modal-block">
-        <h4>교통정보</h4>
+        <h4>교통정보 <span class="badge-auto">자동입력</span></h4>
         <div class="info-tabs" id="transitTabs">
-          <button type="button" class="info-tab active" data-transit-tab="fastest">최소시간</button>
-          <button type="button" class="info-tab" data-transit-tab="subway">지하철</button>
+          <button type="button" class="info-tab active" data-transit-tab="subway">지하철</button>
           <button type="button" class="info-tab" data-transit-tab="bus">버스</button>
-        </div>
-        <div class="dest-search">
-          <i class="fa-solid fa-location-dot"></i>
-          <input type="text" placeholder="도착지 검색" id="transitDestSearch">
         </div>
         <div class="flyer-meta" id="flyerTransit"></div>
       </div>
@@ -594,15 +594,55 @@
     zoneData = { elementary: el, middle: mid, high: high };
   });
 
-  // ---------- 교통정보: 지하철역 도보 시간 (고정 3줄) ----------
-  function getTransitStops() {
-    const stops = [];
-    for (let i = 1; i <= 3; i++) {
-      const station = document.getElementById(`transitStation${i}`).value.trim();
-      const minutes = document.getElementById(`transitMinutes${i}`).value.trim();
-      if (station && minutes) stops.push({ station, minutes });
+  let transitData = { subway: [], bus: [] };
+  fetch('../../static/data/transit_points_bundang.json').then(r => r.json()).then(d => {
+    transitData = d;
+  }).catch(() => {});
+
+  // ---------- 두 좌표 사이 직선거리 (m) — Haversine ----------
+  function distanceMeters(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const p1 = lat1 * Math.PI / 180, p2 = lat2 * Math.PI / 180;
+    const dp = (lat2 - lat1) * Math.PI / 180;
+    const dl = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+    return Math.round(2 * R * Math.asin(Math.sqrt(a)));
+  }
+
+  // ---------- 주소 → 좌표가 확정되면 가까운 지하철역·버스정류장 찾기 ----------
+  function matchNearbyTransit(lng, lat) {
+    const withDist = (list, type) => list
+      .map(p => ({ ...p, type, distance: distanceMeters(lat, lng, p.lat, p.lng) }))
+      .sort((a, b) => a.distance - b.distance);
+    return {
+      subway: withDist(transitData.subway, 'subway').slice(0, 5),
+      bus: withDist(transitData.bus, 'bus').slice(0, 5)
+    };
+  }
+
+  function renderTransitAuto(match) {
+    const empty = document.getElementById('transitAutoEmpty');
+    const result = document.getElementById('transitAutoResult');
+    const badge = document.getElementById('transitAutoBadge');
+
+    if (!match || (!match.subway.length && !match.bus.length)) {
+      empty.style.display = '';
+      result.style.display = 'none';
+      badge.style.display = 'none';
+      return;
     }
-    return stops;
+
+    empty.style.display = 'none';
+    result.style.display = '';
+    badge.style.display = '';
+
+    document.getElementById('transitAutoBodySubway').innerHTML = match.subway.length
+      ? `<div class="school-auto-schools">${match.subway.slice(0, 3).map(s => `<span>${s.name}(${s.line}) · ${s.distance}m</span>`).join('')}</div>`
+      : `<p class="school-auto-note">반경 15km 안에 지하철역이 없어요</p>`;
+
+    document.getElementById('transitAutoBodyBus').innerHTML = match.bus.length
+      ? `<div class="school-auto-schools">${match.bus.slice(0, 3).map(s => `<span>${s.name} · ${s.distance}m</span>`).join('')}</div>`
+      : `<p class="school-auto-note">주변 버스정류장 정보가 없어요</p>`;
   }
 
   // ---------- 포인트-인-폴리곤 (Ray casting) ----------
@@ -718,6 +758,7 @@
   }
 
   // ---------- 지오코딩 확정 처리 (주소 검색 선택 또는 '위치 확인' 클릭 시 공통 실행) ----------
+  let currentTransitMatch = null;
   function applyGeocodedLocation(addr, lng, lat) {
     const mapPreview = document.getElementById('mapPreview');
     const mapStatusBadge = document.getElementById('mapStatusBadge');
@@ -731,6 +772,10 @@
     if (currentSchoolMatch.high) drawZonePolygon(currentSchoolMatch.high, '#FFB020');
 
     renderSchoolAuto(currentSchoolMatch);
+
+    currentTransitMatch = matchNearbyTransit(lng, lat);
+    renderTransitAuto(currentTransitMatch);
+
     updatePreview();
   }
 
@@ -1149,23 +1194,43 @@
       ? feeParts.map(m => `<div>${m}</div>`).join('')
       : '<div class="empty-hint">관리비 정보를 입력하면 여기에 표시돼요</div>';
 
-    // 교통정보 (탭에 따라 다르게 표시)
-    const transitStops = getTransitStops();
-    if (activeTransitTab === 'bus') {
-      flyerTransit.innerHTML = '<div class="empty-hint">버스 정보는 아직 준비 중이에요</div>';
-    } else {
-      const list = activeTransitTab === 'fastest'
-        ? [...transitStops].sort((a, b) => Number(a.minutes) - Number(b.minutes))
-        : transitStops; // '지하철' 탭: 입력한 순서 그대로
-      flyerTransit.innerHTML = list.length
-        ? list.map(s => `
+    // 교통정보 (탭에 따라 다르게 표시 — 주소 기준 직선거리 자동 계산)
+    if (!currentTransitMatch) {
+      flyerTransit.innerHTML = '<div class="empty-hint">1단계에서 주소를 입력하고 위치를 확인하면 자동으로 표시돼요</div>';
+    } else if (activeTransitTab === 'bus') {
+      flyerTransit.innerHTML = currentTransitMatch.bus.length
+        ? currentTransitMatch.bus.map(s => `
             <div class="transit-result-row">
-              <i class="fa-solid fa-train-subway"></i>
-              <span class="transit-station-name">${s.station}</span>
-              <span class="transit-walk-time">도보 ${s.minutes}분</span>
+              <i class="fa-solid fa-bus"></i>
+              <span class="transit-station-name">${s.name}</span>
+              <span class="transit-walk-time">${s.distance}m</span>
             </div>
           `).join('')
-        : '<div class="empty-hint">교통정보를 입력하면 여기에 표시돼요</div>';
+        : '<div class="empty-hint">주변 버스정류장 정보가 없어요</div>';
+    } else if (activeTransitTab === 'subway') {
+      flyerTransit.innerHTML = currentTransitMatch.subway.length
+        ? currentTransitMatch.subway.map(s => `
+            <div class="transit-result-row">
+              <i class="fa-solid fa-train-subway"></i>
+              <span class="transit-station-name">${s.name} (${s.line})</span>
+              <span class="transit-walk-time">${s.distance}m</span>
+            </div>
+          `).join('')
+        : '<div class="empty-hint">반경 15km 안에 지하철역이 없어요</div>';
+    } else {
+      // 최소시간 탭: 지하철·버스 통합해서 거리 가까운 순으로
+      const combined = [...currentTransitMatch.subway, ...currentTransitMatch.bus]
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 5);
+      flyerTransit.innerHTML = combined.length
+        ? combined.map(s => `
+            <div class="transit-result-row">
+              <i class="fa-solid ${s.type === 'subway' ? 'fa-train-subway' : 'fa-bus'}"></i>
+              <span class="transit-station-name">${s.name}${s.line ? ` (${s.line})` : ''}</span>
+              <span class="transit-walk-time">${s.distance}m</span>
+            </div>
+          `).join('')
+        : '<div class="empty-hint">주변 교통정보가 없어요</div>';
     }
 
     // 학군정보 (탭으로 선택한 학교급만 표시 — 주소 기반 자동 매칭 결과)
