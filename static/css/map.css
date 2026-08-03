@@ -214,73 +214,83 @@ header h1 {
 
 .cluster-marker {
   position: relative;
-  width: 70px;
-  height: 70px;
+  isolation: isolate;
+  width: 62px;
+  height: 60px;
 
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  padding-top: 16px;
+  padding-top: 17px;
 
-  background: rgba(255, 255, 255, 0.92);
   color: var(--white);
-  clip-path: polygon(
-    50% 0,
-    100% 34%,
-    89% 34%,
-    89% 100%,
-    11% 100%,
-    11% 34%,
-    0 34%
-  );
 
-  filter: drop-shadow(0 10px 12px rgba(30, 136, 255, 0.28));
+  filter:
+    drop-shadow(0 2px 3px rgba(17, 45, 78, 0.16))
+    drop-shadow(0 7px 9px rgba(30, 136, 255, 0.2));
   cursor: pointer;
-  transition: 0.2s ease;
+  transition:
+    filter 150ms ease,
+    transform 150ms ease;
 }
 
-.cluster-marker::before {
+.cluster-marker-shape {
   position: absolute;
-  inset: 4px;
-  z-index: -1;
+  inset: 0;
+  z-index: 0;
 
-  background: var(--gradient-main);
-  clip-path: inherit;
-  content: "";
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.cluster-marker-shape > path:first-child {
+  fill: var(--primary);
+}
+
+.cluster-marker-roof-highlight {
+  fill: rgba(255, 255, 255, 0.12);
+  pointer-events: none;
 }
 
 .cluster-marker:hover {
-  transform: scale(1.06);
+  filter:
+    drop-shadow(0 2px 3px rgba(17, 45, 78, 0.18))
+    drop-shadow(0 8px 11px rgba(30, 136, 255, 0.28));
+  transform: scale(1.04);
 }
 
 .cluster-count {
   position: relative;
   z-index: 1;
 
-  font-size: 10px;
-  font-weight: 900;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 9px;
+  font-weight: 800;
   line-height: 1.1;
+  letter-spacing: -0.2px;
 }
 
 .cluster-label {
   position: relative;
   z-index: 1;
 
-  margin-top: 3px;
-  font-size: 13px;
+  margin-top: 2px;
+  font-size: 12px;
   font-weight: 900;
   line-height: 1;
+  letter-spacing: -0.3px;
 }
 
 .cluster-size {
   position: relative;
   z-index: 1;
 
-  margin-top: 3px;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 9px;
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 8px;
   font-weight: 800;
   line-height: 1;
 }
@@ -405,57 +415,67 @@ header h1 {
 
 .property-marker {
   position: relative;
-  width: 72px;
-  height: 68px;
+  isolation: isolate;
+  width: 62px;
+  height: 58px;
 
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  padding-top: 17px;
+  padding-top: 18px;
 
-  background: rgba(255, 255, 255, 0.94);
   color: var(--white);
-  clip-path: polygon(
-    50% 0,
-    100% 34%,
-    89% 34%,
-    89% 100%,
-    11% 100%,
-    11% 34%,
-    0 34%
-  );
 
   text-align: center;
   white-space: nowrap;
   cursor: pointer;
 
-  filter: drop-shadow(0 9px 11px rgba(30, 136, 255, 0.28));
+  filter:
+    drop-shadow(0 2px 3px rgba(17, 45, 78, 0.16))
+    drop-shadow(0 7px 9px rgba(30, 136, 255, 0.2));
+  transition: filter 150ms ease;
 }
 
-.property-marker::before {
-  position: absolute;
-  inset: 4px;
-  z-index: -1;
+.property-marker:hover {
+  filter:
+    drop-shadow(0 2px 3px rgba(17, 45, 78, 0.18))
+    drop-shadow(0 8px 11px rgba(30, 136, 255, 0.28));
+}
 
-  background: var(--gradient-main);
-  clip-path: inherit;
-  content: "";
+.property-marker-shape {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.property-marker-shape > path:first-child {
+  fill: var(--primary);
+}
+
+.property-marker-roof-highlight {
+  fill: rgba(255, 255, 255, 0.12);
+  pointer-events: none;
 }
 
 .property-area {
   position: relative;
   z-index: 1;
 
-  color: var(--white);
-  font-size: 11px;
-  font-weight: 900;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 10px;
+  font-weight: 800;
   line-height: 1.1;
+  letter-spacing: -0.2px;
 }
 
 .property-marker-price {
-  margin-top: 4px;
+  margin-top: 3px;
 
   display: flex;
   align-items: baseline;
@@ -482,9 +502,10 @@ header h1 {
   display: inline-block;
 
   color: var(--white);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 900;
   line-height: 1;
+  letter-spacing: -0.35px;
 }
 
 /* 기존 price-marker를 다른 코드에서 사용할 경우 */
@@ -625,6 +646,11 @@ header h1 {
   --poi-soft: #f9e8eb;
 }
 
+.poi-toggle.brokerage {
+  --poi-color: #b86f0b;
+  --poi-soft: #fff1ca;
+}
+
 .poi-toggle-icon {
   width: 29px;
   height: 29px;
@@ -726,6 +752,76 @@ header h1 {
   --poi-soft: #edf2f7;
 }
 
+/* 부동산 중개업소 전용 간판 마커 */
+
+.brokerage-marker {
+  --poi-color: #b86f0b;
+
+  position: relative;
+  width: 42px;
+  height: 48px;
+
+  cursor: pointer;
+  filter:
+    drop-shadow(0 2px 3px rgba(84, 52, 8, 0.2))
+    drop-shadow(0 8px 12px rgba(184, 111, 11, 0.28));
+  transition:
+    filter 160ms ease,
+    transform 160ms ease;
+}
+
+.brokerage-marker:hover {
+  filter:
+    drop-shadow(0 3px 4px rgba(84, 52, 8, 0.24))
+    drop-shadow(0 10px 15px rgba(184, 111, 11, 0.36));
+  transform: translateY(-2px);
+}
+
+.brokerage-marker-shape {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.brokerage-marker-house {
+  fill: #f2aa1c;
+}
+
+.brokerage-marker-roof {
+  fill: rgba(255, 255, 255, 0.2);
+}
+
+.brokerage-marker-sign {
+  position: absolute;
+  top: 19px;
+  left: 7px;
+
+  width: 28px;
+  height: 16px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 5px;
+  background: #fffaf0;
+  color: #5c3a07;
+  box-shadow: 0 2px 5px rgba(91, 57, 7, 0.2);
+
+  font-size: 10px;
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.brokerage-marker .poi-marker-badge {
+  top: -4px;
+  right: -7px;
+  background: #7b4906;
+}
+
 .poi-marker-badge {
   position: absolute;
   top: -8px;
@@ -760,7 +856,7 @@ header h1 {
   box-shadow: 0 12px 32px rgba(17, 45, 78, 0.22);
   overflow: hidden;
 
-  transform: translate(-50%, calc(-100% - 22px));
+  transform: translate(-50%, calc(-100% - var(--poi-popup-offset, 22px)));
 }
 
 .poi-info-accent {
@@ -795,6 +891,53 @@ header h1 {
   color: #65748a;
   font-size: 12px;
   line-height: 1.5;
+}
+
+.poi-info-brokerage {
+  margin-top: 10px;
+  padding: 9px 10px;
+
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--poi-color) 8%, #fff);
+}
+
+.poi-info-brokerage-row {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.poi-info-brokerage-row.is-wide {
+  grid-column: 1 / -1;
+}
+
+.poi-info-brokerage-row span {
+  color: #8490a1;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.poi-info-brokerage-row strong {
+  color: #455268;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.poi-info-brokerage-row .poi-info-status {
+  width: fit-content;
+  color: #a35f09;
+}
+
+.poi-info-brokerage-row .poi-info-status.is-open {
+  color: #288260;
 }
 
 .poi-info-phone {

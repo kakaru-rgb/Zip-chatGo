@@ -32,7 +32,10 @@ const DONG_STAGE_MAX = 4;    // 3~4단계
 
 const MAX_VISIBLE_MARKERS = 700;
 const MAX_LIST_ITEMS = 200;
-const PROPERTY_MARKER_HEIGHT = 68;
+const PROPERTY_CLUSTER_MARKER_WIDTH = 62;
+const PROPERTY_CLUSTER_MARKER_HEIGHT = 60;
+const PROPERTY_MARKER_WIDTH = 62;
+const PROPERTY_MARKER_HEIGHT = 58;
 const MAX_VISIBLE_POI_MARKERS = 500;
 const MAX_BUS_ROUTES_PER_STOP = 30;
 
@@ -60,6 +63,13 @@ const POI_CATEGORY_CONFIG = {
     className: "medical",
     color: "#c46978",
     icon: '<path d="M12 21S4 16.5 4 9.5A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8 3.5C20 16.5 12 21 12 21Z"/><path d="M8 12h2l1-3 2 6 1-3h2"/>'
+  },
+  "중개": {
+    label: "중개",
+    className: "brokerage",
+    color: "#b86f0b",
+    popupOffset: 54,
+    icon: '<path d="m4 10 8-6 8 6v9H4v-9Z"/><path d="M7 11h10v5H7zM9 19v-3m6 3v-3"/>'
   }
 };
 
@@ -530,6 +540,42 @@ function renderPois() {
   removeUnusedPoiMarkers(nextKeys);
 }
 
+function renderPoiMarkerContent(category, config, title, count = 0) {
+  const badge = count > 1
+    ? `<span class="poi-marker-badge">${count > 99 ? "99+" : count.toLocaleString()}</span>`
+    : "";
+
+  if (category === "중개") {
+    return `
+      <div class="brokerage-marker" title="${escapeHtml(title)}">
+        <svg class="brokerage-marker-shape" viewBox="0 0 42 48" aria-hidden="true">
+          <path class="brokerage-marker-house"
+                d="M21 2 39 14v21c0 2.2-1.8 4-4 4h-7l-7 8-7-8H7c-2.2 0-4-1.8-4-4V14L21 2Z"></path>
+          <path class="brokerage-marker-roof"
+                d="M21 2 39 14v5L21 8 3 19v-5L21 2Z"></path>
+        </svg>
+        <span class="brokerage-marker-sign">중개</span>
+        ${badge}
+      </div>
+    `;
+  }
+
+  return `
+    <div class="poi-marker ${config.className}" title="${escapeHtml(title)}">
+      <svg class="poi-marker-icon" viewBox="0 0 24 24" aria-hidden="true">
+        ${config.icon}
+      </svg>
+      ${badge}
+    </div>
+  `;
+}
+
+function getPoiMarkerAnchor(category) {
+  return category === "중개"
+    ? new naver.maps.Point(21, 47)
+    : new naver.maps.Point(15, 15);
+}
+
 function createPoiClusterMarker(feature, lat, lng, index, category) {
   const props = feature.properties;
   const clusterId = props.cluster_id;
@@ -548,15 +594,13 @@ function createPoiClusterMarker(feature, lat, lng, index, category) {
     map,
     zIndex: 180,
     icon: {
-      content: `
-        <div class="poi-marker ${config.className}" title="${config.label} 시설 ${count.toLocaleString()}곳">
-          <svg class="poi-marker-icon" viewBox="0 0 24 24" aria-hidden="true">
-            ${config.icon}
-          </svg>
-          <span class="poi-marker-badge">${count > 99 ? "99+" : count.toLocaleString()}</span>
-        </div>
-      `,
-      anchor: new naver.maps.Point(15, 15)
+      content: renderPoiMarkerContent(
+        category,
+        config,
+        `${config.label} 시설 ${count.toLocaleString()}곳`,
+        count
+      ),
+      anchor: getPoiMarkerAnchor(category)
     }
   });
 
@@ -591,23 +635,18 @@ function createPoiMarker(feature, lat, lng) {
         className: "mixed",
         icon: '<circle cx="7" cy="12" r="2"/><circle cx="17" cy="7" r="2"/><circle cx="16" cy="17" r="2"/><path d="m9 11 6-3m-6 5 5 3"/>'
       };
-  const badge = items.length > 1
-    ? `<span class="poi-marker-badge">${items.length}</span>`
-    : "";
   const marker = new naver.maps.Marker({
     position: new naver.maps.LatLng(lat, lng),
     map,
     zIndex: 190,
     icon: {
-      content: `
-        <div class="poi-marker ${config.className}" title="${escapeHtml(items[0]?.name || config.label)}">
-          <svg class="poi-marker-icon" viewBox="0 0 24 24" aria-hidden="true">
-            ${config.icon}
-          </svg>
-          ${badge}
-        </div>
-      `,
-      anchor: new naver.maps.Point(15, 15)
+      content: renderPoiMarkerContent(
+        category,
+        config,
+        items[0]?.name || config.label,
+        items.length
+      ),
+      anchor: getPoiMarkerAnchor(category)
     }
   });
 
@@ -711,12 +750,19 @@ function createPropertyClusterMarker(feature, lat, lng) {
     icon: {
       content: `
         <div class="cluster-marker">
+          <svg class="cluster-marker-shape" viewBox="0 0 62 60" aria-hidden="true">
+            <path d="M2 20Q1 18 3 17L28 2Q31 0 34 2L59 17Q61 18 60 20T57 22H56V56Q56 58 54 58H8Q6 58 6 56V22H5Q3 22 2 20Z"></path>
+            <path class="cluster-marker-roof-highlight" d="M4 17.5 28.5 2.7Q31 1.2 33.5 2.7L58 17.5Q59.5 18.5 58.5 20H3.5Q2.5 18.5 4 17.5Z"></path>
+          </svg>
           <div class="cluster-count">${formatAreaPyeong(averageArea)}</div>
           <div class="cluster-label">${formatPriceToEok(averagePrice)}</div>
           <div class="cluster-size">(${itemCount.toLocaleString()})</div>
         </div>
       `,
-      anchor: new naver.maps.Point(35, 35)
+      anchor: new naver.maps.Point(
+        PROPERTY_CLUSTER_MARKER_WIDTH / 2,
+        PROPERTY_CLUSTER_MARKER_HEIGHT / 2
+      )
     }
   });
 
@@ -826,6 +872,10 @@ function createPropertyMarker(item) {
     icon: {
       content: `
         <div class="property-marker">
+          <svg class="property-marker-shape" viewBox="0 0 62 58" aria-hidden="true">
+            <path d="M2 20Q1 18 3 17L28 2Q31 0 34 2L59 17Q61 18 60 20T57 22H56V54Q56 56 54 56H8Q6 56 6 54V22H5Q3 22 2 20Z"></path>
+            <path class="property-marker-roof-highlight" d="M4 17.5 28.5 2.7Q31 1.2 33.5 2.7L58 17.5Q59.5 18.5 58.5 20H3.5Q2.5 18.5 4 17.5Z"></path>
+          </svg>
           <div class="property-area">${formatAreaPyeong(item.exclusive_area)}</div>
           <div class="property-marker-price">
               <span class="deal-type">매</span>
@@ -833,7 +883,10 @@ function createPropertyMarker(item) {
           </div>
         </div>
       `,
-      anchor: new naver.maps.Point(36, 34)
+      anchor: new naver.maps.Point(
+        PROPERTY_MARKER_WIDTH / 2,
+        PROPERTY_MARKER_HEIGHT / 2
+      )
     }
   });
 
@@ -1012,6 +1065,26 @@ function renderPoiInfoPopup() {
         </div>
       `
     : "";
+  const brokerageInfo = item.category === "중개"
+    ? `
+        <div class="poi-info-brokerage">
+          <div class="poi-info-brokerage-row">
+            <span>영업상태</span>
+            <strong class="poi-info-status${item.business_status === "영업중" ? " is-open" : ""}">
+              ${escapeHtml(item.business_status || "정보 없음")}
+            </strong>
+          </div>
+          <div class="poi-info-brokerage-row">
+            <span>중개업자</span>
+            <strong>${escapeHtml(item.representative_name || "정보 없음")}</strong>
+          </div>
+          <div class="poi-info-brokerage-row is-wide">
+            <span>등록번호</span>
+            <strong>${escapeHtml(item.registration_number || "정보 없음")}</strong>
+          </div>
+        </div>
+      `
+    : "";
   const rawBusRoutes = Array.isArray(item.bus_routes)
     ? item.bus_routes.filter(Boolean)
     : [];
@@ -1051,7 +1124,8 @@ function renderPoiInfoPopup() {
       `
     : "";
   const html = `
-    <div class="poi-info-popup" style="--poi-color:${config.color}">
+    <div class="poi-info-popup"
+         style="--poi-color:${config.color};--poi-popup-offset:${config.popupOffset || 22}px">
       <div class="poi-info-accent"></div>
       <div class="poi-info-body">
         <div class="poi-info-category">
@@ -1059,6 +1133,7 @@ function renderPoiInfoPopup() {
         </div>
         <div class="poi-info-name">${escapeHtml(item.name || "이름 없는 시설")}</div>
         <div class="poi-info-address">${escapeHtml(address || "주소 정보 없음")}</div>
+        ${brokerageInfo}
         ${phone}
         ${busRouteInfo}
         ${navigation}
