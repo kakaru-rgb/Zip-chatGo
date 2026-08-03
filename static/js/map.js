@@ -1,6 +1,8 @@
 let map;
 let allProperties = [];
 let filteredProperties = [];
+let selectedProperty = null;
+let propertyListScrollTop = 0;
 
 let propertyIndex = null;
 let sidoIndex = null;
@@ -19,6 +21,15 @@ let activePoiPopupItems = [];
 let activePoiPopupIndex = 0;
 let activePoiPopupPosition = null;
 const activePoiCategories = new Set();
+
+let distanceMeasureActive = false;
+let distanceMeasureFinished = false;
+let distanceMeasurePoints = [];
+let distanceMeasurePolyline = null;
+let distanceMeasurePreview = null;
+let distanceMeasurePointMarkers = [];
+let distanceMeasureSegmentLabels = [];
+let distanceMeasureTotalLabel = null;
 
 const INITIAL_CENTER = new naver.maps.LatLng(37.40, 127.15);
 
@@ -158,6 +169,10 @@ async function loadPois() {
       button.title = `${POI_CATEGORY_CONFIG[category].label} 시설 ${count.toLocaleString()}개`;
     });
 
+    if (selectedProperty) {
+      renderPropertyDetail(selectedProperty);
+    }
+
     if (activePoiCategories.size) {
       rebuildPoiIndex();
       scheduleRender();
@@ -171,6 +186,15 @@ function bindEvents() {
   naver.maps.Event.addListener(map, "idle", scheduleRender);
   naver.maps.Event.addListener(map, "dragstart", closeAllInfoPopups);
   naver.maps.Event.addListener(map, "zoomstart", closeAllInfoPopups);
+  naver.maps.Event.addListener(map, "click", handleDistanceMeasureClick);
+  naver.maps.Event.addListener(map, "mousemove", handleDistanceMeasureMouseMove);
+
+  document.getElementById("map").addEventListener("contextmenu", event => {
+    if (!distanceMeasureActive) return;
+
+    event.preventDefault();
+    undoDistanceMeasurePoint();
+  });
 
   document.getElementById("searchBtn").addEventListener("click", applyFilters);
 
@@ -180,6 +204,15 @@ function bindEvents() {
 
   document.getElementById("typeFilter").addEventListener("change", applyFilters);
   document.getElementById("priceFilter").addEventListener("change", applyFilters);
+  document.getElementById("propertyDetailBack").addEventListener("click", () => {
+    showPropertyListView({ restoreScroll: true });
+  });
+  document.getElementById("distanceMeasureToggle").addEventListener("click", toggleDistanceMeasurement);
+  document.getElementById("distanceMeasureUndo").addEventListener("click", undoDistanceMeasurePoint);
+  document.getElementById("distanceMeasureFinish").addEventListener("click", finishDistanceMeasurement);
+  document.getElementById("distanceMeasureClear").addEventListener("click", () => {
+    resetDistanceMeasurement({ keepOpen: true });
+  });
 
   document.querySelectorAll(".poi-toggle").forEach(button => {
     button.addEventListener("click", () => togglePoiCategory(button));
@@ -187,6 +220,11 @@ function bindEvents() {
 
   document.addEventListener("keydown", event => {
     if (event.key === "Escape") {
+      if (isDistanceMeasurementOpen()) {
+        closeDistanceMeasurement();
+        return;
+      }
+
       closeAllInfoPopups();
     }
   });
@@ -592,6 +630,7 @@ function createPoiClusterMarker(feature, lat, lng, index, category) {
   const marker = new naver.maps.Marker({
     position: new naver.maps.LatLng(lat, lng),
     map,
+    clickable: !distanceMeasureActive,
     zIndex: 180,
     icon: {
       content: renderPoiMarkerContent(
@@ -605,6 +644,8 @@ function createPoiClusterMarker(feature, lat, lng, index, category) {
   });
 
   naver.maps.Event.addListener(marker, "click", () => {
+    if (distanceMeasureActive) return;
+
     const position = marker.getPosition();
 
     if (map.getZoom() < APP_MAX_ZOOM) {
@@ -638,6 +679,7 @@ function createPoiMarker(feature, lat, lng) {
   const marker = new naver.maps.Marker({
     position: new naver.maps.LatLng(lat, lng),
     map,
+    clickable: !distanceMeasureActive,
     zIndex: 190,
     icon: {
       content: renderPoiMarkerContent(
@@ -651,6 +693,8 @@ function createPoiMarker(feature, lat, lng) {
   });
 
   naver.maps.Event.addListener(marker, "click", () => {
+    if (distanceMeasureActive) return;
+
     openPoiInfoPopup(items, marker.getPosition());
   });
 
@@ -747,6 +791,7 @@ function createPropertyClusterMarker(feature, lat, lng) {
   const marker = new naver.maps.Marker({
     position: new naver.maps.LatLng(lat, lng),
     map,
+    clickable: !distanceMeasureActive,
     icon: {
       content: `
         <div class="cluster-marker">
@@ -767,6 +812,8 @@ function createPropertyClusterMarker(feature, lat, lng) {
   });
 
   naver.maps.Event.addListener(marker, "click", () => {
+    if (distanceMeasureActive) return;
+
     const items = propertyIndex
       .getLeaves(clusterId, props.point_count, 0)
       .map(leaf => leaf.properties.item)
@@ -831,6 +878,7 @@ function createRegionMarker(feature, lat, lng) {
   const marker = new naver.maps.Marker({
     position: new naver.maps.LatLng(lat ?? featureLat, lng ?? featureLng),
     map,
+    clickable: !distanceMeasureActive,
     icon: {
       content: `
         <div class="region-marker ${props.level}">
@@ -847,6 +895,8 @@ function createRegionMarker(feature, lat, lng) {
   });
 
   naver.maps.Event.addListener(marker, "click", () => {
+    if (distanceMeasureActive) return;
+
     renderList([]);
 
     let nextZoom;
@@ -869,6 +919,7 @@ function createPropertyMarker(item) {
   const marker = new naver.maps.Marker({
     position: new naver.maps.LatLng(item.latitude, item.longitude),
     map,
+    clickable: !distanceMeasureActive,
     icon: {
       content: `
         <div class="property-marker">
@@ -891,6 +942,8 @@ function createPropertyMarker(item) {
   });
 
   naver.maps.Event.addListener(marker, "click", () => {
+    if (distanceMeasureActive) return;
+
     renderList([item]);
     openInfoWindow(item, marker);
   });
@@ -903,6 +956,8 @@ function createPropertyMarker(item) {
 =========================== */
 
 function renderList(items) {
+  showPropertyListView();
+
   const list = document.getElementById("propertyList");
   const count = document.getElementById("resultCount");
 
@@ -919,6 +974,9 @@ function renderList(items) {
   items.slice(0, MAX_LIST_ITEMS).forEach(item => {
     const card = document.createElement("div");
     card.className = "property-card";
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-label", `${item.building_name || item.title || "매물"} 상세정보 보기`);
 
     card.innerHTML = `
       <img src="${item.thumbnail_url || ""}" onerror="this.style.display='none'">
@@ -932,7 +990,9 @@ function renderList(items) {
       </div>
     `;
 
-    card.addEventListener("click", () => {
+    const selectProperty = () => {
+      openPropertyDetail(item);
+
       const stage = getAppZoomStage(map.getZoom());
 
       if (stage <= DONG_STAGE_MAX) {
@@ -949,10 +1009,786 @@ function renderList(items) {
       }
 
       showPropertyInfo(item);
+    };
+
+    card.addEventListener("click", selectProperty);
+    card.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        selectProperty();
+      }
     });
 
     list.appendChild(card);
   });
+}
+
+/* ===========================
+   Distance Measure Tool
+=========================== */
+
+function isDistanceMeasurementOpen() {
+  return !document.getElementById("distanceMeasurePanel").hidden;
+}
+
+function DistanceMeasureLineOverlay(options) {
+  this.path = [...(options.path || [])];
+  this.strokeColor = options.strokeColor || "#1e88ff";
+  this.strokeOpacity = options.strokeOpacity ?? 1;
+  this.strokeWeight = options.strokeWeight || 3;
+  this.strokeStyle = options.strokeStyle || "solid";
+  this.zIndex = options.zIndex || 1500;
+  this.element = null;
+  this.lineElement = null;
+  this.setMap(options.map || null);
+}
+
+DistanceMeasureLineOverlay.prototype = new naver.maps.OverlayView();
+DistanceMeasureLineOverlay.prototype.constructor = DistanceMeasureLineOverlay;
+
+DistanceMeasureLineOverlay.prototype.onAdd = function() {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+
+  svg.classList.add("distance-measure-line-overlay");
+  svg.style.zIndex = String(this.zIndex);
+  svg.setAttribute("aria-hidden", "true");
+
+  line.setAttribute("fill", "none");
+  line.setAttribute("stroke", this.strokeColor);
+  line.setAttribute("stroke-opacity", String(this.strokeOpacity));
+  line.setAttribute("stroke-width", String(this.strokeWeight));
+  line.setAttribute("stroke-linecap", "round");
+  line.setAttribute("stroke-linejoin", "round");
+
+  if (this.strokeStyle === "shortdash") {
+    line.setAttribute("stroke-dasharray", "6 6");
+  }
+
+  svg.appendChild(line);
+  this.element = svg;
+  this.lineElement = line;
+  this.getPanes().overlayImage.appendChild(svg);
+};
+
+DistanceMeasureLineOverlay.prototype.draw = function() {
+  if (!this.getMap() || !this.element || this.path.length < 2) return;
+
+  const projection = this.getProjection();
+  const offsets = this.path.map(point => projection.fromCoordToOffset(point));
+  const padding = this.strokeWeight + 4;
+  const minX = Math.min(...offsets.map(point => point.x)) - padding;
+  const minY = Math.min(...offsets.map(point => point.y)) - padding;
+  const maxX = Math.max(...offsets.map(point => point.x)) + padding;
+  const maxY = Math.max(...offsets.map(point => point.y)) + padding;
+  const width = Math.max(1, maxX - minX);
+  const height = Math.max(1, maxY - minY);
+  const points = offsets
+    .map(point => `${point.x - minX},${point.y - minY}`)
+    .join(" ");
+
+  this.element.style.left = `${minX}px`;
+  this.element.style.top = `${minY}px`;
+  this.element.setAttribute("width", String(width));
+  this.element.setAttribute("height", String(height));
+  this.element.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  this.lineElement.setAttribute("points", points);
+};
+
+DistanceMeasureLineOverlay.prototype.onRemove = function() {
+  this.element?.remove();
+  this.element = null;
+  this.lineElement = null;
+};
+
+DistanceMeasureLineOverlay.prototype.setPath = function(path) {
+  this.path = [...path];
+  this.draw();
+};
+
+DistanceMeasureLineOverlay.prototype.getDistance = function() {
+  let total = 0;
+
+  for (let index = 1; index < this.path.length; index += 1) {
+    const start = this.path[index - 1];
+    const end = this.path[index];
+
+    total += calculateDistanceMeters(
+      start.lat(),
+      start.lng(),
+      end.lat(),
+      end.lng()
+    );
+  }
+
+  return total;
+};
+
+function toggleDistanceMeasurement() {
+  if (isDistanceMeasurementOpen()) {
+    closeDistanceMeasurement();
+    return;
+  }
+
+  startDistanceMeasurement();
+}
+
+function startDistanceMeasurement() {
+  closeAllInfoPopups();
+  resetDistanceMeasurement({ keepOpen: true });
+}
+
+function closeDistanceMeasurement() {
+  resetDistanceMeasurement({ keepOpen: false });
+}
+
+function resetDistanceMeasurement({ keepOpen = false } = {}) {
+  clearDistanceMeasureOverlays();
+  distanceMeasurePoints = [];
+  distanceMeasureActive = keepOpen;
+  distanceMeasureFinished = false;
+  setMapMarkersInteractive(!distanceMeasureActive);
+
+  document.getElementById("distanceMeasurePanel").hidden = !keepOpen;
+  document.getElementById("distanceMeasureToggle").setAttribute(
+    "aria-pressed",
+    String(keepOpen)
+  );
+  document.getElementById("map").classList.toggle(
+    "is-distance-measuring",
+    keepOpen
+  );
+
+  updateDistanceMeasureUi();
+}
+
+function handleDistanceMeasureClick(event) {
+  addDistanceMeasurePoint(event.coord);
+}
+
+function setMapMarkersInteractive(interactive) {
+  for (const marker of markerMap.values()) {
+    marker.setClickable(interactive);
+  }
+
+  for (const marker of poiMarkerMap.values()) {
+    marker.setClickable(interactive);
+  }
+}
+
+function addDistanceMeasurePoint(coord) {
+  if (!distanceMeasureActive || !coord) return false;
+
+  clearDistanceMeasurePreview();
+  distanceMeasurePoints.push(coord);
+  renderDistanceMeasurement();
+  return true;
+}
+
+function handleDistanceMeasureMouseMove(event) {
+  if (
+    !distanceMeasureActive ||
+    !distanceMeasurePoints.length ||
+    !event.coord
+  ) {
+    return;
+  }
+
+  const lastPoint = distanceMeasurePoints[distanceMeasurePoints.length - 1];
+  const previewPath = [lastPoint, event.coord];
+
+  if (!distanceMeasurePreview) {
+    distanceMeasurePreview = new DistanceMeasureLineOverlay({
+      map,
+      path: previewPath,
+      strokeColor: "#1e88ff",
+      strokeOpacity: 0.62,
+      strokeWeight: 2,
+      strokeStyle: "shortdash",
+      zIndex: 1450
+    });
+    return;
+  }
+
+  distanceMeasurePreview.setPath(previewPath);
+}
+
+function undoDistanceMeasurePoint() {
+  if (!distanceMeasureActive || !distanceMeasurePoints.length) return;
+
+  distanceMeasurePoints.pop();
+  clearDistanceMeasurePreview();
+  renderDistanceMeasurement();
+}
+
+function finishDistanceMeasurement() {
+  if (!distanceMeasureActive || distanceMeasurePoints.length < 2) return;
+
+  distanceMeasureActive = false;
+  distanceMeasureFinished = true;
+  setMapMarkersInteractive(true);
+  clearDistanceMeasurePreview();
+  document.getElementById("map").classList.remove("is-distance-measuring");
+  renderDistanceMeasurement();
+}
+
+function renderDistanceMeasurement() {
+  clearDistanceMeasureResultOverlays();
+
+  distanceMeasurePointMarkers = distanceMeasurePoints.map((point, index) => {
+    const isStart = index === 0;
+    const isEnd = distanceMeasurePoints.length > 1 && index === distanceMeasurePoints.length - 1;
+    const markerClass = isStart ? " is-start" : isEnd ? " is-end" : "";
+
+    return new naver.maps.Marker({
+      map,
+      position: point,
+      clickable: false,
+      zIndex: 1600,
+      icon: {
+        content: `<div class="distance-point-marker${markerClass}"></div>`,
+        anchor: new naver.maps.Point(8.5, 8.5)
+      }
+    });
+  });
+
+  if (distanceMeasurePoints.length >= 2) {
+    distanceMeasurePolyline = new DistanceMeasureLineOverlay({
+      map,
+      path: distanceMeasurePoints,
+      strokeColor: "#1e88ff",
+      strokeOpacity: 0.9,
+      strokeWeight: 4,
+      zIndex: 1500
+    });
+
+    for (let index = 1; index < distanceMeasurePoints.length; index += 1) {
+      const start = distanceMeasurePoints[index - 1];
+      const end = distanceMeasurePoints[index];
+      const segmentDistance = calculateDistanceMeters(
+        start.lat(),
+        start.lng(),
+        end.lat(),
+        end.lng()
+      );
+      const midpoint = new naver.maps.LatLng(
+        (start.lat() + end.lat()) / 2,
+        (start.lng() + end.lng()) / 2
+      );
+
+      distanceMeasureSegmentLabels.push(new naver.maps.Marker({
+        map,
+        position: midpoint,
+        clickable: false,
+        zIndex: 1590,
+        icon: {
+          content: `<div class="distance-segment-label">${formatMeasuredDistance(segmentDistance)}</div>`,
+          anchor: new naver.maps.Point(0, 0)
+        }
+      }));
+    }
+
+    const totalDistance = getDistanceMeasureTotal();
+    const lastPoint = distanceMeasurePoints[distanceMeasurePoints.length - 1];
+
+    distanceMeasureTotalLabel = new naver.maps.Marker({
+      map,
+      position: lastPoint,
+      clickable: false,
+      zIndex: 1610,
+      icon: {
+        content: `<div class="distance-total-label">총 ${formatMeasuredDistance(totalDistance)}</div>`,
+        anchor: new naver.maps.Point(0, 0)
+      }
+    });
+  }
+
+  updateDistanceMeasureUi();
+}
+
+function getDistanceMeasureTotal() {
+  return distanceMeasurePolyline
+    ? distanceMeasurePolyline.getDistance()
+    : 0;
+}
+
+function updateDistanceMeasureUi() {
+  const pointCount = distanceMeasurePoints.length;
+  const totalDistance = getDistanceMeasureTotal();
+  const guide = document.getElementById("distanceMeasureGuide");
+
+  document.getElementById("distanceMeasurePointCount").textContent = `${pointCount.toLocaleString()}개 지점`;
+  document.getElementById("distanceMeasureTotal").textContent = pointCount >= 2
+    ? formatMeasuredDistance(totalDistance)
+    : "—";
+  document.getElementById("distanceMeasureUndo").disabled = (
+    !distanceMeasureActive || pointCount === 0
+  );
+  document.getElementById("distanceMeasureFinish").disabled = (
+    !distanceMeasureActive || pointCount < 2
+  );
+
+  if (distanceMeasureFinished) {
+    guide.textContent = "측정이 완료되었습니다. 초기화하거나 거리 버튼을 눌러 종료할 수 있습니다.";
+  } else if (pointCount === 0) {
+    guide.textContent = "지도를 클릭해 시작점을 지정하세요.";
+  } else if (pointCount === 1) {
+    guide.textContent = "다음 지점을 클릭하면 구간 거리가 표시됩니다.";
+  } else {
+    guide.textContent = "지점을 더 추가하거나 완료 버튼을 눌러 측정을 마치세요.";
+  }
+}
+
+function clearDistanceMeasurePreview() {
+  if (!distanceMeasurePreview) return;
+
+  distanceMeasurePreview.setMap(null);
+  distanceMeasurePreview = null;
+}
+
+function clearDistanceMeasureResultOverlays() {
+  if (distanceMeasurePolyline) {
+    distanceMeasurePolyline.setMap(null);
+    distanceMeasurePolyline = null;
+  }
+
+  distanceMeasurePointMarkers.forEach(marker => marker.setMap(null));
+  distanceMeasurePointMarkers = [];
+
+  distanceMeasureSegmentLabels.forEach(marker => marker.setMap(null));
+  distanceMeasureSegmentLabels = [];
+
+  if (distanceMeasureTotalLabel) {
+    distanceMeasureTotalLabel.setMap(null);
+    distanceMeasureTotalLabel = null;
+  }
+}
+
+function clearDistanceMeasureOverlays() {
+  clearDistanceMeasurePreview();
+  clearDistanceMeasureResultOverlays();
+}
+
+function formatMeasuredDistance(distance) {
+  if (!Number.isFinite(distance) || distance < 0) return "—";
+
+  if (distance < 1000) {
+    return `${Math.round(distance).toLocaleString()}m`;
+  }
+
+  const digits = distance < 10000 ? 2 : 1;
+  return `${Number((distance / 1000).toFixed(digits)).toLocaleString()}km`;
+}
+
+/* ===========================
+   Property Detail Panel
+=========================== */
+
+function showPropertyListView({ restoreScroll = false } = {}) {
+  const sidebar = document.getElementById("propertySidebar");
+  const listView = document.getElementById("propertyListView");
+  const detailView = document.getElementById("propertyDetailView");
+  const detailWasOpen = !detailView.hidden;
+
+  selectedProperty = null;
+  listView.hidden = false;
+  detailView.hidden = true;
+  sidebar.classList.remove("is-detail-open");
+
+  if (restoreScroll && detailWasOpen) {
+    requestAnimationFrame(() => {
+      sidebar.scrollTop = propertyListScrollTop;
+    });
+  } else if (detailWasOpen) {
+    sidebar.scrollTop = 0;
+  }
+}
+
+function openPropertyDetail(item) {
+  const sidebar = document.getElementById("propertySidebar");
+  const listView = document.getElementById("propertyListView");
+  const detailView = document.getElementById("propertyDetailView");
+
+  propertyListScrollTop = sidebar.scrollTop;
+  selectedProperty = item;
+  listView.hidden = true;
+  detailView.hidden = false;
+  sidebar.classList.add("is-detail-open");
+  renderPropertyDetail(item);
+  sidebar.scrollTop = 0;
+}
+
+function renderPropertyDetail(item) {
+  const content = document.getElementById("propertyDetailContent");
+
+  if (!content || !item) return;
+
+  const sameComplexItems = getSameComplexProperties(item);
+  const samePyeongItems = sameComplexItems.filter(candidate => (
+    getRoundedPyeong(candidate.exclusive_area) === getRoundedPyeong(item.exclusive_area)
+  ));
+  const complexSaleItems = sameComplexItems.filter(candidate => candidate.sale_price > 0);
+  const samePyeongSaleItems = samePyeongItems.filter(candidate => candidate.sale_price > 0);
+  const complexAveragePrice = getAverageValue(complexSaleItems, "sale_price");
+  const samePyeongAveragePrice = getAverageValue(samePyeongSaleItems, "sale_price");
+  const availableAreas = getComplexAreaSummary(sameComplexItems);
+  const proximity = getPropertyProximity(item);
+  const propertyName = item.title || item.building_name || "매물";
+  const detailArea = formatDetailArea(item.exclusive_area);
+
+  content.innerHTML = `
+    <div class="property-detail-media" aria-label="매물 이미지 영역">
+      ${renderPropertyMediaSlot("대표사진", "main")}
+      ${renderPropertyMediaSlot("단지사진", "complex")}
+      ${renderPropertyMediaSlot("평면도", "floorplan")}
+    </div>
+
+    <div class="property-detail-summary">
+      <div class="property-detail-kicker">
+        ${escapeHtml([item.property_type, detailArea].filter(Boolean).join(" · "))}
+      </div>
+      <h2>${escapeHtml(propertyName)}</h2>
+      <div class="property-detail-price">
+        ${renderDetailText(formatOptionalPrice(item.sale_price))}
+      </div>
+      <p class="property-detail-address">${escapeHtml(item.address || "")}</p>
+    </div>
+
+    <section class="property-detail-section">
+      ${renderDetailSectionHeading("기본정보")}
+      <dl class="property-detail-field-grid">
+        ${renderDetailField("매물번호", item.id)}
+        ${renderDetailField("매물 유형", item.property_type)}
+        ${renderDetailField("전용면적", detailArea)}
+        ${renderDetailField("층수", formatOptionalUnit(item.floor, "층"))}
+        ${renderDetailField("매매가", formatOptionalPrice(item.sale_price))}
+        ${renderDetailField("관리비", formatOptionalPrice(item.maintenance_fee))}
+        ${renderDetailField("보증금", formatOptionalPrice(item.deposit))}
+        ${renderDetailField("월세", formatOptionalPrice(item.monthly_rent))}
+        ${renderDetailField("준공연도", formatOptionalUnit(item.built_year, "년"))}
+        ${renderDetailField("등록일", item.created_at)}
+        ${renderDetailField("주소", item.address, true)}
+        ${renderDetailField("지번", item.lot_number, true)}
+      </dl>
+    </section>
+
+    <section class="property-detail-section">
+      ${renderDetailSectionHeading("가격 정보", "현재 등록 매물 기준")}
+      <div class="property-price-grid">
+        ${renderPriceCard(
+          `같은 단지 평균 (${complexSaleItems.length.toLocaleString()}건)`,
+          formatOptionalPrice(complexAveragePrice),
+          true
+        )}
+        ${renderPriceCard(
+          `같은 평수 평균 (${samePyeongSaleItems.length.toLocaleString()}건)`,
+          formatOptionalPrice(samePyeongAveragePrice)
+        )}
+        ${renderPriceCard("평균 실거래가", "")}
+        ${renderPriceCard("최근 실거래가", "")}
+      </div>
+    </section>
+
+    <section class="property-detail-section">
+      ${renderDetailSectionHeading("단지정보")}
+      <dl class="property-detail-field-grid">
+        ${renderDetailField("단지명", item.building_name, true)}
+        ${renderDetailField("준공연도", formatOptionalUnit(item.built_year, "년"))}
+        ${renderDetailField("등록 매물", sameComplexItems.length ? `${sameComplexItems.length.toLocaleString()}개` : "")}
+        ${renderDetailField("보유 면적", availableAreas, true)}
+        ${renderDetailField("총 세대수", "")}
+        ${renderDetailField("총 동수", "")}
+        ${renderDetailField("시공사", "")}
+        ${renderDetailField("난방 방식", "")}
+        ${renderDetailField("세대당 주차", "")}
+        ${renderDetailField("용적률 / 건폐율", "")}
+        ${renderDetailField("단지 주소", item.address, true)}
+      </dl>
+    </section>
+
+    <section class="property-detail-section">
+      ${renderDetailSectionHeading("주변시설", "직선거리 기준")}
+      <div class="property-facility-list">
+        ${renderFacilityItem("교통", "교통", "transport", proximity.facilities["교통"])}
+        ${renderFacilityItem("의료", "의료", "medical", proximity.facilities["의료"])}
+        ${renderFacilityItem("공공", "공공기관", "public", proximity.facilities["공공기관"])}
+        ${renderFacilityItem("중개", "중개", "brokerage", proximity.facilities["중개"])}
+      </div>
+    </section>
+
+    <section class="property-detail-section">
+      ${renderDetailSectionHeading("주변 학교", "거리 기준 · 배정학군 정보 아님")}
+      <div class="property-school-list">
+        ${renderSchoolItem("초", "초등학교", proximity.schools.elementary)}
+        ${renderSchoolItem("중", "중학교", proximity.schools.middle)}
+        ${renderSchoolItem("고", "고등학교", proximity.schools.high)}
+      </div>
+    </section>
+
+    <section class="property-detail-section">
+      ${renderDetailSectionHeading("매물 설명")}
+      <div class="property-detail-description-slot">${escapeHtml(item.description || "")}</div>
+    </section>
+  `;
+}
+
+function renderPropertyMediaSlot(label, type) {
+  const icon = type === "floorplan"
+    ? '<path d="M4 4h16v16H4zM10 4v7H4m16 2h-6v7m0-9h3V7"/>'
+    : '<path d="M4 7h3l1.5-2h7L17 7h3v12H4V7Zm4 6 2.5 2.5L14 12l3 3M15.5 10h.01"/>';
+  const mainClass = type === "main" ? " is-main" : "";
+
+  return `
+    <div class="property-media-slot${mainClass}" role="img" aria-label="${escapeHtml(label)} 이미지 자리">
+      <svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg>
+      <span>${escapeHtml(label)}</span>
+    </div>
+  `;
+}
+
+function renderDetailSectionHeading(title, note = "") {
+  return `
+    <div class="property-detail-section-heading">
+      <h3>${escapeHtml(title)}</h3>
+      ${note ? `<span>${escapeHtml(note)}</span>` : ""}
+    </div>
+  `;
+}
+
+function renderDetailField(label, value, wide = false) {
+  return `
+    <div class="property-detail-field${wide ? " is-wide" : ""}">
+      <dt>${escapeHtml(label)}</dt>
+      <dd>${renderDetailText(value)}</dd>
+    </div>
+  `;
+}
+
+function renderPriceCard(label, value, primary = false) {
+  return `
+    <div class="property-price-card${primary ? " is-primary" : ""}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${renderDetailText(value)}</strong>
+    </div>
+  `;
+}
+
+function renderDetailText(value) {
+  const normalized = String(value ?? "").trim();
+
+  return normalized && normalized !== "-"
+    ? escapeHtml(normalized)
+    : '<span class="property-detail-empty" aria-label="정보 없음"></span>';
+}
+
+function renderFacilityItem(shortLabel, category, className, nearest) {
+  const name = nearest?.item?.name || "";
+  const distance = nearest ? formatDistance(nearest.distance) : "";
+
+  return `
+    <div class="property-facility-item">
+      <span class="property-facility-icon ${className}">${escapeHtml(shortLabel)}</span>
+      <div class="property-facility-copy">
+        <span>${escapeHtml(category)}</span>
+        ${name ? `<strong>${escapeHtml(name)}</strong>` : renderDetailText("")}
+      </div>
+      <span class="property-facility-distance">${distance ? escapeHtml(distance) : renderDetailText("")}</span>
+    </div>
+  `;
+}
+
+function renderSchoolItem(shortLabel, label, nearest) {
+  const name = nearest?.item?.name || "";
+  const distance = nearest ? formatDistance(nearest.distance) : "";
+
+  return `
+    <div class="property-school-item">
+      <span class="property-school-icon">${escapeHtml(shortLabel)}</span>
+      <div class="property-school-copy">
+        <span>${escapeHtml(label)}</span>
+        ${name ? `<strong>${escapeHtml(name)}</strong>` : renderDetailText("")}
+      </div>
+      <span class="property-school-distance">${distance ? escapeHtml(distance) : renderDetailText("")}</span>
+    </div>
+  `;
+}
+
+function getSameComplexProperties(item) {
+  const buildingName = String(item.building_name || "").trim();
+  const address = String(item.address || "").trim();
+
+  return allProperties.filter(candidate => {
+    const candidateBuildingName = String(candidate.building_name || "").trim();
+    const candidateAddress = String(candidate.address || "").trim();
+
+    if (buildingName && address) {
+      return candidateBuildingName === buildingName && candidateAddress === address;
+    }
+
+    if (buildingName) {
+      return candidateBuildingName === buildingName;
+    }
+
+    return address && candidateAddress === address;
+  });
+}
+
+function getComplexAreaSummary(items) {
+  const areas = [...new Set(
+    items
+      .map(item => Number(item.exclusive_area))
+      .filter(area => Number.isFinite(area) && area > 0)
+      .map(area => Number(area.toFixed(4)))
+  )].sort((a, b) => a - b);
+
+  if (!areas.length) return "";
+
+  const visibleAreas = areas.slice(0, 6).map(area => `${area}㎡`);
+  const remaining = areas.length - visibleAreas.length;
+
+  return remaining > 0
+    ? `${visibleAreas.join(" · ")} 외 ${remaining}개`
+    : visibleAreas.join(" · ");
+}
+
+function getAverageValue(items, key) {
+  const values = items
+    .map(item => Number(item[key]))
+    .filter(value => Number.isFinite(value) && value > 0);
+
+  if (!values.length) return 0;
+
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function getRoundedPyeong(area) {
+  const numericArea = Number(area);
+
+  return Number.isFinite(numericArea) && numericArea > 0
+    ? Math.round(numericArea / 3.3058)
+    : null;
+}
+
+function formatDetailArea(area) {
+  const numericArea = Number(area);
+  const pyeong = getRoundedPyeong(numericArea);
+
+  if (!Number.isFinite(numericArea) || numericArea <= 0 || pyeong === null) {
+    return "";
+  }
+
+  return `${numericArea}㎡ (${pyeong}평)`;
+}
+
+function formatOptionalPrice(value) {
+  const numericValue = Number(value);
+
+  return Number.isFinite(numericValue) && numericValue > 0
+    ? formatPrice(numericValue)
+    : "";
+}
+
+function formatOptionalUnit(value, unit) {
+  const normalized = String(value ?? "").trim();
+
+  return normalized ? `${normalized}${unit}` : "";
+}
+
+function getPropertyProximity(item) {
+  const facilityCategories = new Set(["교통", "의료", "공공기관", "중개"]);
+  const result = {
+    facilities: {
+      "교통": null,
+      "의료": null,
+      "공공기관": null,
+      "중개": null
+    },
+    schools: {
+      elementary: null,
+      middle: null,
+      high: null
+    }
+  };
+  const latitude = Number(item.latitude);
+  const longitude = Number(item.longitude);
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return result;
+  }
+
+  allPois.forEach(poi => {
+    const facilityCategory = facilityCategories.has(poi.category)
+      ? poi.category
+      : null;
+    const schoolLevel = poi.category === "교육"
+      ? getSchoolLevel(poi)
+      : null;
+
+    if (!facilityCategory && !schoolLevel) return;
+
+    const distance = calculateDistanceMeters(
+      latitude,
+      longitude,
+      Number(poi.latitude),
+      Number(poi.longitude)
+    );
+
+    if (!Number.isFinite(distance)) return;
+
+    if (
+      facilityCategory &&
+      (!result.facilities[facilityCategory] || distance < result.facilities[facilityCategory].distance)
+    ) {
+      result.facilities[facilityCategory] = { item: poi, distance };
+    }
+
+    if (
+      schoolLevel &&
+      (!result.schools[schoolLevel] || distance < result.schools[schoolLevel].distance)
+    ) {
+      result.schools[schoolLevel] = { item: poi, distance };
+    }
+  });
+
+  return result;
+}
+
+function getSchoolLevel(poi) {
+  const schoolText = `${poi.subcategory || ""} ${poi.name || ""}`;
+
+  if (schoolText.includes("초등학교")) return "elementary";
+  if (schoolText.includes("중학교")) return "middle";
+  if (schoolText.includes("고등학교")) return "high";
+
+  return null;
+}
+
+function calculateDistanceMeters(lat1, lng1, lat2, lng2) {
+  if (![lat1, lng1, lat2, lng2].every(Number.isFinite)) return NaN;
+
+  const earthRadius = 6371000;
+  const toRadians = value => value * Math.PI / 180;
+  const latitudeDelta = toRadians(lat2 - lat1);
+  const longitudeDelta = toRadians(lng2 - lng1);
+  const startLatitude = toRadians(lat1);
+  const endLatitude = toRadians(lat2);
+  const haversine = (
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(startLatitude) * Math.cos(endLatitude) *
+    Math.sin(longitudeDelta / 2) ** 2
+  );
+
+  return 2 * earthRadius * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+}
+
+function formatDistance(distance) {
+  if (!Number.isFinite(distance)) return "";
+
+  if (distance < 1000) {
+    return `${Math.max(1, Math.round(distance / 10) * 10).toLocaleString()}m`;
+  }
+
+  return `${Number((distance / 1000).toFixed(1))}km`;
 }
 
 /* ===========================
