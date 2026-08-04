@@ -2,16 +2,54 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>부동산 지도 서비스</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="../../static/css/common.css">
   <link rel="stylesheet" href="../../static/css/map.css" />
 </head>
-<body>
-  <header>
-    <h1>부동산 지도</h1>
+<body class="map-page">
+  <header class="main-header" id="mainHeader">
+    <a href="../../index.html" class="logo">
+      <img src="../../static/images/logo.png" alt="집찾GO">
+    </a>
+
+    <button class="menu-btn"
+            id="menuBtn"
+            type="button"
+            aria-label="메뉴 열기"
+            aria-controls="mobileNav"
+            aria-expanded="false">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <nav class="top-nav" id="mobileNav">
+      <a class="guest-menu" href="../member/login.html">
+        <i class="ti ti-login" aria-hidden="true"></i>
+        로그인
+      </a>
+      <a class="guest-menu" href="../member/signup.html">
+        <i class="ti ti-user-plus" aria-hidden="true"></i>
+        회원가입
+      </a>
+      <a href="../support/contact.html">
+        <i class="ti ti-headset" aria-hidden="true"></i>
+        고객센터
+      </a>
+      <a class="user-menu" href="../favorite/favorite.html">
+        <i class="ti ti-heart" aria-hidden="true"></i>
+        관심매물
+      </a>
+      <a class="user-menu logout-btn" href="#">
+        <i class="ti ti-logout" aria-hidden="true"></i>
+        로그아웃
+      </a>
+    </nav>
   </header>
 
-  <main>
+  <main class="map-page-main">
     <aside id="propertySidebar">
       <div class="search-box">
         <input id="searchInput" type="text" placeholder="지역, 단지명, 주소 검색" />
@@ -19,6 +57,19 @@
       </div>
 
       <div id="propertyListView" class="property-list-view">
+        <div class="mobile-property-list-toolbar">
+          <button id="mobilePropertyListBack"
+                  class="mobile-view-back"
+                  type="button"
+                  aria-label="지도로 돌아가기">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m15 5-7 7 7 7"/>
+            </svg>
+          </button>
+          <strong>매물 목록</strong>
+          <span><b id="mobileResultCount">0</b>개</span>
+        </div>
+
         <div class="filter-box">
           <select id="typeFilter">
             <option value="">전체 유형</option>
@@ -54,6 +105,11 @@
             </svg>
           </button>
           <strong>매물 상세</strong>
+          <button id="mobilePropertyDetailMap"
+                  class="mobile-detail-map-button"
+                  type="button">
+            지도
+          </button>
         </div>
         <div id="propertyDetailContent" class="property-detail-content"></div>
       </section>
@@ -155,6 +211,7 @@
   <!-- 빠른 클러스터링 라이브러리 -->
   <script src="https://unpkg.com/supercluster@8.0.1/dist/supercluster.min.js"></script>
 
+  <script src="../../static/js/common.js"></script>
   <script src="../../static/js/map.js"></script>
 </body>
 </html>

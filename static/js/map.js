@@ -31,6 +31,9 @@ let distanceMeasurePointMarkers = [];
 let distanceMeasureSegmentLabels = [];
 let distanceMeasureTotalLabel = null;
 
+const MOBILE_MAP_MEDIA_QUERY = window.matchMedia("(max-width: 768px)");
+let mobileMapView = "map";
+
 const INITIAL_CENTER = new naver.maps.LatLng(37.40, 127.15);
 
 const APP_MIN_ZOOM = 10; // 0단계
@@ -100,10 +103,7 @@ map = new naver.maps.Map("map", {
   zoom: APP_START_ZOOM,
   minZoom: APP_MIN_ZOOM,
   maxZoom: APP_MAX_ZOOM,
-  zoomControl: true,
-  zoomControlOptions: {
-    position: naver.maps.Position.TOP_RIGHT
-  }
+  zoomControl: false
 });
 
 loadProperties();
@@ -193,7 +193,7 @@ function bindEvents() {
     if (!distanceMeasureActive) return;
 
     event.preventDefault();
-    undoDistanceMeasurePoint();
+    finishDistanceMeasurement();
   });
 
   document.getElementById("searchBtn").addEventListener("click", applyFilters);
@@ -206,7 +206,13 @@ function bindEvents() {
   document.getElementById("priceFilter").addEventListener("change", applyFilters);
   document.getElementById("propertyDetailBack").addEventListener("click", () => {
     showPropertyListView({ restoreScroll: true });
+
+    if (isMobileMapLayout()) {
+      setMobileMapView("list");
+    }
   });
+  document.getElementById("mobilePropertyListBack").addEventListener("click", returnToMobileMap);
+  document.getElementById("mobilePropertyDetailMap").addEventListener("click", returnToMobileMap);
   document.getElementById("distanceMeasureToggle").addEventListener("click", toggleDistanceMeasurement);
   document.getElementById("distanceMeasureUndo").addEventListener("click", undoDistanceMeasurePoint);
   document.getElementById("distanceMeasureFinish").addEventListener("click", finishDistanceMeasurement);
@@ -228,6 +234,9 @@ function bindEvents() {
       closeAllInfoPopups();
     }
   });
+
+  MOBILE_MAP_MEDIA_QUERY.addEventListener("change", syncResponsiveMapLayout);
+  syncResponsiveMapLayout();
 }
 
 function scheduleRender() {
@@ -819,7 +828,7 @@ function createPropertyClusterMarker(feature, lat, lng) {
       .map(leaf => leaf.properties.item)
       .filter(Boolean);
 
-    renderList(items);
+    renderList(items, { openMobileList: true });
 
     const nextZoom = Math.min(
       propertyIndex.getClusterExpansionZoom(clusterId),
@@ -944,7 +953,13 @@ function createPropertyMarker(item) {
   naver.maps.Event.addListener(marker, "click", () => {
     if (distanceMeasureActive) return;
 
-    renderList([item]);
+    renderList([item], { openMobileList: true });
+
+    if (isMobileMapLayout()) {
+      closeInfoWindow();
+      return;
+    }
+
     openInfoWindow(item, marker);
   });
 
@@ -952,16 +967,79 @@ function createPropertyMarker(item) {
 }
 
 /* ===========================
+   Responsive Mobile Views
+=========================== */
+
+function isMobileMapLayout() {
+  return MOBILE_MAP_MEDIA_QUERY.matches;
+}
+
+function setMobileMapView(view) {
+  mobileMapView = view;
+
+  const body = document.body;
+  const mapElement = document.getElementById("map");
+  const listOpen = isMobileMapLayout() && view === "list";
+  const detailOpen = isMobileMapLayout() && view === "detail";
+
+  body.classList.toggle("mobile-map-list-open", listOpen);
+  body.classList.toggle("mobile-map-detail-open", detailOpen);
+  mapElement.setAttribute("aria-hidden", String(listOpen || detailOpen));
+
+  if (listOpen || detailOpen) {
+    closeAllInfoPopups();
+  }
+
+  if (!listOpen && !detailOpen) {
+    requestAnimationFrame(() => map.autoResize());
+  }
+}
+
+function openMobilePropertyList() {
+  if (!isMobileMapLayout()) return;
+
+  const sidebar = document.getElementById("propertySidebar");
+  sidebar.scrollTop = 0;
+  setMobileMapView("list");
+}
+
+function returnToMobileMap() {
+  if (!isMobileMapLayout()) return;
+
+  showPropertyListView();
+  setMobileMapView("map");
+}
+
+function syncResponsiveMapLayout(event = MOBILE_MAP_MEDIA_QUERY) {
+  if (event.matches) {
+    if (isDistanceMeasurementOpen()) {
+      closeDistanceMeasurement();
+    }
+
+    const detailView = document.getElementById("propertyDetailView");
+    setMobileMapView(detailView.hidden ? "map" : "detail");
+  } else {
+    document.body.classList.remove("mobile-map-list-open", "mobile-map-detail-open");
+    document.getElementById("map").setAttribute("aria-hidden", "false");
+    mobileMapView = "map";
+  }
+
+  requestAnimationFrame(() => map.autoResize());
+}
+
+/* ===========================
    List
 =========================== */
 
-function renderList(items) {
+function renderList(items, { openMobileList = false } = {}) {
   showPropertyListView();
 
   const list = document.getElementById("propertyList");
   const count = document.getElementById("resultCount");
+  const mobileCount = document.getElementById("mobileResultCount");
 
   count.textContent = items.length.toLocaleString();
+  mobileCount.textContent = items.length.toLocaleString();
   list.innerHTML = "";
 
   if (items.length > MAX_LIST_ITEMS) {
@@ -993,6 +1071,11 @@ function renderList(items) {
     const selectProperty = () => {
       openPropertyDetail(item);
 
+      if (isMobileMapLayout()) {
+        closeInfoWindow();
+        return;
+      }
+
       const stage = getAppZoomStage(map.getZoom());
 
       if (stage <= DONG_STAGE_MAX) {
@@ -1021,6 +1104,10 @@ function renderList(items) {
 
     list.appendChild(card);
   });
+
+  if (openMobileList) {
+    openMobilePropertyList();
+  }
 }
 
 /* ===========================
@@ -1125,6 +1212,8 @@ DistanceMeasureLineOverlay.prototype.getDistance = function() {
 };
 
 function toggleDistanceMeasurement() {
+  if (isMobileMapLayout()) return;
+
   if (isDistanceMeasurementOpen()) {
     closeDistanceMeasurement();
     return;
@@ -1134,6 +1223,8 @@ function toggleDistanceMeasurement() {
 }
 
 function startDistanceMeasurement() {
+  if (isMobileMapLayout()) return;
+
   closeAllInfoPopups();
   resetDistanceMeasurement({ keepOpen: true });
 }
@@ -1214,7 +1305,19 @@ function handleDistanceMeasureMouseMove(event) {
 }
 
 function undoDistanceMeasurePoint() {
-  if (!distanceMeasureActive || !distanceMeasurePoints.length) return;
+  if (
+    (!distanceMeasureActive && !distanceMeasureFinished) ||
+    !distanceMeasurePoints.length
+  ) {
+    return;
+  }
+
+  if (distanceMeasureFinished) {
+    distanceMeasureActive = true;
+    distanceMeasureFinished = false;
+    setMapMarkersInteractive(false);
+    document.getElementById("map").classList.add("is-distance-measuring");
+  }
 
   distanceMeasurePoints.pop();
   clearDistanceMeasurePreview();
@@ -1290,6 +1393,9 @@ function renderDistanceMeasurement() {
 
     const totalDistance = getDistanceMeasureTotal();
     const lastPoint = distanceMeasurePoints[distanceMeasurePoints.length - 1];
+    const totalLabelContent = distanceMeasureFinished
+      ? renderDistanceResultPopup(totalDistance)
+      : `<div class="distance-total-label">총 ${formatMeasuredDistance(totalDistance)}</div>`;
 
     distanceMeasureTotalLabel = new naver.maps.Marker({
       map,
@@ -1297,7 +1403,7 @@ function renderDistanceMeasurement() {
       clickable: false,
       zIndex: 1610,
       icon: {
-        content: `<div class="distance-total-label">총 ${formatMeasuredDistance(totalDistance)}</div>`,
+        content: totalLabelContent,
         anchor: new naver.maps.Point(0, 0)
       }
     });
@@ -1312,6 +1418,27 @@ function getDistanceMeasureTotal() {
     : 0;
 }
 
+function renderDistanceResultPopup(distance) {
+  const walkingMinutes = estimateTravelMinutes(distance, 4);
+  const bicycleMinutes = estimateTravelMinutes(distance, 15);
+
+  return `
+    <div class="distance-result-popup"
+         aria-label="총 거리 ${formatMeasuredDistance(distance)}, 도보 ${walkingMinutes}분, 자전거 ${bicycleMinutes}분">
+      <strong>총 ${formatMeasuredDistance(distance)}</strong>
+      <span><em>도보</em><b>${walkingMinutes}분</b></span>
+      <span><em>자전거</em><b>${bicycleMinutes}분</b></span>
+    </div>
+  `;
+}
+
+function estimateTravelMinutes(distance, speedKilometersPerHour) {
+  if (!Number.isFinite(distance) || distance <= 0) return 0;
+
+  const metersPerMinute = (speedKilometersPerHour * 1000) / 60;
+  return Math.max(1, Math.ceil(distance / metersPerMinute));
+}
+
 function updateDistanceMeasureUi() {
   const pointCount = distanceMeasurePoints.length;
   const totalDistance = getDistanceMeasureTotal();
@@ -1322,7 +1449,7 @@ function updateDistanceMeasureUi() {
     ? formatMeasuredDistance(totalDistance)
     : "—";
   document.getElementById("distanceMeasureUndo").disabled = (
-    !distanceMeasureActive || pointCount === 0
+    (!distanceMeasureActive && !distanceMeasureFinished) || pointCount === 0
   );
   document.getElementById("distanceMeasureFinish").disabled = (
     !distanceMeasureActive || pointCount < 2
@@ -1416,6 +1543,10 @@ function openPropertyDetail(item) {
   sidebar.classList.add("is-detail-open");
   renderPropertyDetail(item);
   sidebar.scrollTop = 0;
+
+  if (isMobileMapLayout()) {
+    setMobileMapView("detail");
+  }
 }
 
 function renderPropertyDetail(item) {
@@ -1438,9 +1569,7 @@ function renderPropertyDetail(item) {
 
   content.innerHTML = `
     <div class="property-detail-media" aria-label="매물 이미지 영역">
-      ${renderPropertyMediaSlot("대표사진", "main")}
-      ${renderPropertyMediaSlot("단지사진", "complex")}
-      ${renderPropertyMediaSlot("평면도", "floorplan")}
+      ${renderPropertyMediaSlot("대표사진")}
     </div>
 
     <div class="property-detail-summary">
@@ -1489,6 +1618,11 @@ function renderPropertyDetail(item) {
       </div>
     </section>
 
+    <section class="property-detail-section property-floorplan-section">
+      ${renderDetailSectionHeading("평면도")}
+      ${renderFloorplanMediaSlot()}
+    </section>
+
     <section class="property-detail-section">
       ${renderDetailSectionHeading("단지정보")}
       <dl class="property-detail-field-grid">
@@ -1532,16 +1666,24 @@ function renderPropertyDetail(item) {
   `;
 }
 
-function renderPropertyMediaSlot(label, type) {
-  const icon = type === "floorplan"
-    ? '<path d="M4 4h16v16H4zM10 4v7H4m16 2h-6v7m0-9h3V7"/>'
-    : '<path d="M4 7h3l1.5-2h7L17 7h3v12H4V7Zm4 6 2.5 2.5L14 12l3 3M15.5 10h.01"/>';
-  const mainClass = type === "main" ? " is-main" : "";
+function renderPropertyMediaSlot(label) {
+  const icon = '<path d="M4 7h3l1.5-2h7L17 7h3v12H4V7Zm4 6 2.5 2.5L14 12l3 3M15.5 10h.01"/>';
 
   return `
-    <div class="property-media-slot${mainClass}" role="img" aria-label="${escapeHtml(label)} 이미지 자리">
+    <div class="property-media-slot is-main" role="img" aria-label="${escapeHtml(label)} 이미지 자리">
       <svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg>
       <span>${escapeHtml(label)}</span>
+    </div>
+  `;
+}
+
+function renderFloorplanMediaSlot() {
+  return `
+    <div class="property-floorplan-slot" role="img" aria-label="평면도 이미지 자리">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 4h16v16H4zM10 4v7H4m16 2h-6v7m0-9h3V7"/>
+      </svg>
+      <span>평면도 이미지</span>
     </div>
   `;
 }
