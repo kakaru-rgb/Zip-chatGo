@@ -32,7 +32,9 @@ let distanceMeasureSegmentLabels = [];
 let distanceMeasureTotalLabel = null;
 
 const MOBILE_MAP_MEDIA_QUERY = window.matchMedia("(max-width: 768px)");
+const FAVORITE_PROPERTY_STORAGE_KEY = "zipchatgo.favoritePropertyIds";
 let mobileMapView = "map";
+let favoritePropertyIds = loadFavoritePropertyIds();
 
 const INITIAL_CENTER = new naver.maps.LatLng(37.40, 127.15);
 
@@ -52,6 +54,19 @@ const PROPERTY_MARKER_WIDTH = 62;
 const PROPERTY_MARKER_HEIGHT = 58;
 const MAX_VISIBLE_POI_MARKERS = 500;
 const MAX_BUS_ROUTES_PER_STOP = 30;
+
+const PROPERTY_IMAGE_BASE_PATH = "../../static/data/아파트_공통_이미지";
+const APARTMENT_IMAGE_COUNT = 93;
+const FLOORPLAN_IMAGE_VARIANTS = Object.freeze({
+  "전용39": [1, 3, 4, 5, 6, 7, 9],
+  "전용49": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  "전용59": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  "전용74": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  "전용84": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  "전용101": [1, 2, 3, 4, 5, 6],
+  "전용114": [3, 5, 6, 7, 8, 9, 10, 11],
+  "전용134이상": [2, 4, 5, 6, 8, 9, 10]
+});
 
 const POI_CATEGORY_CONFIG = {
   "공공기관": {
@@ -137,8 +152,11 @@ async function loadProperties() {
     map.setZoom(APP_START_ZOOM);
 
     bindEvents();
-    renderList([]);
-    scheduleRender();
+
+    if (!openRequestedPropertyFromUrl()) {
+      renderList([]);
+      scheduleRender();
+    }
 
   } catch (err) {
     console.error("매물 데이터 로드 실패:", err);
@@ -211,6 +229,9 @@ function bindEvents() {
       setMobileMapView("list");
     }
   });
+  document.getElementById("propertyFavoriteToggle").addEventListener("click", () => {
+    if (selectedProperty) toggleFavoriteProperty(selectedProperty);
+  });
   document.getElementById("mobilePropertyListBack").addEventListener("click", returnToMobileMap);
   document.getElementById("mobilePropertyDetailMap").addEventListener("click", returnToMobileMap);
   document.getElementById("distanceMeasureToggle").addEventListener("click", toggleDistanceMeasurement);
@@ -236,6 +257,7 @@ function bindEvents() {
   });
 
   MOBILE_MAP_MEDIA_QUERY.addEventListener("change", syncResponsiveMapLayout);
+  window.addEventListener("storage", handleFavoriteStorageChange);
   syncResponsiveMapLayout();
 }
 
@@ -953,14 +975,8 @@ function createPropertyMarker(item) {
   naver.maps.Event.addListener(marker, "click", () => {
     if (distanceMeasureActive) return;
 
+    closeInfoWindow();
     renderList([item], { openMobileList: true });
-
-    if (isMobileMapLayout()) {
-      closeInfoWindow();
-      return;
-    }
-
-    openInfoWindow(item, marker);
   });
 
   return marker;
@@ -1010,6 +1026,29 @@ function returnToMobileMap() {
   setMobileMapView("map");
 }
 
+function openRequestedPropertyFromUrl() {
+  const propertyId = new URLSearchParams(window.location.search).get("property_id");
+  if (!propertyId) return false;
+
+  const item = allProperties.find(property => property.id === String(propertyId));
+  if (!item) return false;
+
+  const position = new naver.maps.LatLng(item.latitude, item.longitude);
+
+  map.setCenter(position);
+  map.setZoom(APP_MAX_ZOOM);
+  renderList([item]);
+  openPropertyDetail(item);
+
+  requestAnimationFrame(() => {
+    clearTimeout(renderTimer);
+    render();
+    showPropertyInfo(item);
+  });
+
+  return true;
+}
+
 function syncResponsiveMapLayout(event = MOBILE_MAP_MEDIA_QUERY) {
   if (event.matches) {
     if (isDistanceMeasurementOpen()) {
@@ -1031,6 +1070,123 @@ function syncResponsiveMapLayout(event = MOBILE_MAP_MEDIA_QUERY) {
    List
 =========================== */
 
+function getStableImageIndex(item, length, salt = "") {
+  if (!length) return 0;
+
+  const seed = `${item?.id || ""}|${item?.building_name || ""}|${salt}`;
+  let hash = 2166136261;
+
+  for (let index = 0; index < seed.length; index += 1) {
+    hash ^= seed.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0) % length;
+}
+
+function getApartmentImagePath(item) {
+  const imageNumber = getStableImageIndex(item, APARTMENT_IMAGE_COUNT, "apartment") + 1;
+  const filename = `apartment_${String(imageNumber).padStart(3, "0")}.jpg`;
+
+  return `${PROPERTY_IMAGE_BASE_PATH}/이미지/${filename}`;
+}
+
+function classifyFloorplanCategory(exclusiveArea) {
+  const area = Number(exclusiveArea);
+  if (!Number.isFinite(area)) return null;
+
+  if (area < 40) return "전용39";
+  if (area < 54) return "전용49";
+  if (area < 66) return "전용59";
+  if (area < 79) return "전용74";
+  if (area < 93) return "전용84";
+  if (area < 109) return "전용101";
+  if (area < 125) return "전용114";
+  return "전용134이상";
+}
+
+function getFloorplanImagePath(item) {
+  const category = classifyFloorplanCategory(item?.exclusive_area);
+  const variants = FLOORPLAN_IMAGE_VARIANTS[category];
+  if (!category || !variants?.length) return "";
+
+  const variantIndex = getStableImageIndex(item, variants.length, `floorplan:${category}`);
+  const imageNumber = String(variants[variantIndex]).padStart(2, "0");
+  const categoryCode = category === "전용134이상" ? "134_plus" : category.replace("전용", "");
+
+  return `${PROPERTY_IMAGE_BASE_PATH}/평면도/${category}/floorplan_${categoryCode}_${imageNumber}.jpg`;
+}
+
+function loadFavoritePropertyIds() {
+  try {
+    const storedValue = JSON.parse(localStorage.getItem(FAVORITE_PROPERTY_STORAGE_KEY) || "[]");
+    if (!Array.isArray(storedValue)) return new Set();
+
+    return new Set(storedValue.map(id => String(id)));
+  } catch (error) {
+    console.warn("관심 매물 목록을 불러오지 못했습니다:", error);
+    return new Set();
+  }
+}
+
+function saveFavoritePropertyIds() {
+  try {
+    localStorage.setItem(
+      FAVORITE_PROPERTY_STORAGE_KEY,
+      JSON.stringify(Array.from(favoritePropertyIds))
+    );
+  } catch (error) {
+    console.warn("관심 매물 목록을 저장하지 못했습니다:", error);
+  }
+}
+
+function isFavoriteProperty(item) {
+  return Boolean(item?.id) && favoritePropertyIds.has(String(item.id));
+}
+
+function toggleFavoriteProperty(item) {
+  const propertyId = String(item?.id || "");
+  if (!propertyId) return;
+
+  if (favoritePropertyIds.has(propertyId)) {
+    favoritePropertyIds.delete(propertyId);
+  } else {
+    favoritePropertyIds.add(propertyId);
+  }
+
+  saveFavoritePropertyIds();
+  syncFavoriteIndicators();
+}
+
+function syncFavoriteToggle(item = selectedProperty) {
+  const button = document.getElementById("propertyFavoriteToggle");
+  if (!button) return;
+
+  const isFavorite = isFavoriteProperty(item);
+  const label = isFavorite ? "관심 매물에서 삭제" : "관심 매물에 추가";
+
+  button.classList.toggle("is-active", isFavorite);
+  button.setAttribute("aria-pressed", String(isFavorite));
+  button.setAttribute("aria-label", label);
+  button.title = label;
+}
+
+function syncFavoriteIndicators() {
+  document.querySelectorAll("[data-favorite-property-id]").forEach(badge => {
+    const isFavorite = favoritePropertyIds.has(String(badge.dataset.favoritePropertyId || ""));
+    badge.classList.toggle("is-visible", isFavorite);
+  });
+
+  syncFavoriteToggle();
+}
+
+function handleFavoriteStorageChange(event) {
+  if (event.key !== FAVORITE_PROPERTY_STORAGE_KEY && event.key !== null) return;
+
+  favoritePropertyIds = loadFavoritePropertyIds();
+  syncFavoriteIndicators();
+}
+
 function renderList(items, { openMobileList = false } = {}) {
   showPropertyListView();
 
@@ -1050,21 +1206,37 @@ function renderList(items, { openMobileList = false } = {}) {
   }
 
   items.slice(0, MAX_LIST_ITEMS).forEach(item => {
+    const propertyName = item.building_name || item.title || "매물";
+    const apartmentImagePath = getApartmentImagePath(item);
+    const favoriteClass = isFavoriteProperty(item) ? " is-visible" : "";
     const card = document.createElement("div");
     card.className = "property-card";
     card.tabIndex = 0;
     card.setAttribute("role", "button");
-    card.setAttribute("aria-label", `${item.building_name || item.title || "매물"} 상세정보 보기`);
+    card.setAttribute("aria-label", `${propertyName} 상세정보 보기`);
 
     card.innerHTML = `
-      <img src="${item.thumbnail_url || ""}" onerror="this.style.display='none'">
+      <div class="property-thumbnail">
+        <img src="${escapeHtml(apartmentImagePath)}"
+             alt="${escapeHtml(propertyName)} 대표 사진"
+             loading="lazy"
+             decoding="async">
+        <span class="property-favorite-badge${favoriteClass}"
+              data-favorite-property-id="${escapeHtml(item.id)}"
+              aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 21S4 16.5 4 9.5A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8 3.5C20 16.5 12 21 12 21Z"/>
+          </svg>
+        </span>
+        <span class="property-image-watermark" aria-hidden="true">SAMPLE</span>
+      </div>
       <div class="property-info">
         <div class="property-title">${item.title || item.building_name || "매물"}</div>
         <div class="property-price">${formatPrice(item.sale_price)}</div>
         <div class="property-meta">
-          ${item.property_type || ""} · ${item.exclusive_area || "-"}㎡ · ${item.floor || "-"}층<br>
-          ${item.address || ""}
+          ${item.property_type || ""} · ${item.exclusive_area || "-"}㎡ · ${item.floor || "-"}층
         </div>
+        <div class="property-address">${item.address || ""}</div>
       </div>
     `;
 
@@ -1554,6 +1726,8 @@ function renderPropertyDetail(item) {
 
   if (!content || !item) return;
 
+  syncFavoriteToggle(item);
+
   const sameComplexItems = getSameComplexProperties(item);
   const samePyeongItems = sameComplexItems.filter(candidate => (
     getRoundedPyeong(candidate.exclusive_area) === getRoundedPyeong(item.exclusive_area)
@@ -1569,7 +1743,7 @@ function renderPropertyDetail(item) {
 
   content.innerHTML = `
     <div class="property-detail-media" aria-label="매물 이미지 영역">
-      ${renderPropertyMediaSlot("대표사진")}
+      ${renderPropertyMediaSlot(item, propertyName)}
     </div>
 
     <div class="property-detail-summary">
@@ -1620,7 +1794,7 @@ function renderPropertyDetail(item) {
 
     <section class="property-detail-section property-floorplan-section">
       ${renderDetailSectionHeading("평면도")}
-      ${renderFloorplanMediaSlot()}
+      ${renderFloorplanMediaSlot(item)}
     </section>
 
     <section class="property-detail-section">
@@ -1666,24 +1840,41 @@ function renderPropertyDetail(item) {
   `;
 }
 
-function renderPropertyMediaSlot(label) {
-  const icon = '<path d="M4 7h3l1.5-2h7L17 7h3v12H4V7Zm4 6 2.5 2.5L14 12l3 3M15.5 10h.01"/>';
+function renderPropertyMediaSlot(item, propertyName) {
+  const imagePath = getApartmentImagePath(item);
 
   return `
-    <div class="property-media-slot is-main" role="img" aria-label="${escapeHtml(label)} 이미지 자리">
-      <svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg>
-      <span>${escapeHtml(label)}</span>
+    <div class="property-media-slot is-main">
+      <img src="${escapeHtml(imagePath)}"
+           alt="${escapeHtml(propertyName)} 대표 사진"
+           decoding="async">
+      <span class="property-image-watermark" aria-hidden="true">SAMPLE</span>
     </div>
   `;
 }
 
-function renderFloorplanMediaSlot() {
+function renderFloorplanMediaSlot(item) {
+  const imagePath = getFloorplanImagePath(item);
+  const category = classifyFloorplanCategory(item?.exclusive_area);
+
+  if (!imagePath) {
+    return `
+      <div class="property-floorplan-slot" role="img" aria-label="평면도 이미지 없음">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 4h16v16H4zM10 4v7H4m16 2h-6v7m0-9h3V7"/>
+        </svg>
+        <span>평면도 이미지가 없습니다</span>
+      </div>
+    `;
+  }
+
   return `
-    <div class="property-floorplan-slot" role="img" aria-label="평면도 이미지 자리">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 4h16v16H4zM10 4v7H4m16 2h-6v7m0-9h3V7"/>
-      </svg>
-      <span>평면도 이미지</span>
+    <div class="property-floorplan-slot">
+      <img src="${escapeHtml(imagePath)}"
+           alt="${escapeHtml(category)} 평면도"
+           loading="lazy"
+           decoding="async">
+      <span class="property-image-watermark is-floorplan" aria-hidden="true">SAMPLE</span>
     </div>
   `;
 }
@@ -1949,11 +2140,8 @@ function openInfoWindow(item, marker) {
       box-shadow:0 4px 18px rgba(0,0,0,0.25);
       overflow:hidden;
       font-family:Arial, 'Noto Sans KR', sans-serif;
+      pointer-events:none;
     ">
-      <img src="${item.thumbnail_url || ""}"
-           style="width:100%; height:135px; object-fit:cover; background:#eee;"
-           onerror="this.style.display='none'">
-
       <div style="padding:13px;">
         <div style="font-weight:bold; font-size:15px; margin-bottom:6px;">
           ${item.title || item.building_name || "매물"}
@@ -1978,6 +2166,7 @@ function openInfoWindow(item, marker) {
     position: marker.getPosition(),
     map,
     zIndex: 1000,
+    clickable: false,
     icon: {
       content: html,
       anchor: new naver.maps.Point(0, 0)
