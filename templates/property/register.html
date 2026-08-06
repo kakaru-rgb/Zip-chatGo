@@ -20,7 +20,6 @@
     <span></span><span></span><span></span>
   </button>
   <nav class="top-nav" id="topNav">
-    <a href="../../templates/property/search.html"><i class="fa-solid fa-magnifying-glass"></i>매물찾기</a>
     <a href="../../templates/support/guide.html"><i class="fa-solid fa-circle-info"></i>이용가이드</a>
     <a href="../../templates/support/contact.html"><i class="fa-solid fa-headset"></i>고객센터</a>
   </nav>
@@ -1186,9 +1185,13 @@
     const feeParts = [];
     const fee = document.getElementById('maintenanceFee').value;
     if (fee) feeParts.push(`일반(공용) 관리비 ${fee}만원`);
+    const ALL_UTILITIES = ['전기', '수도', '가스', '인터넷', 'TV'];
     const utilities = Array.from(document.querySelectorAll('#utilityGroup input:checked')).map(i => i.value);
-    if (utilities.length) feeParts.push(`사용료 포함: ${utilities.join(', ')}`);
+    const notIncluded = ALL_UTILITIES.filter(u => !utilities.includes(u));
     const etcFee = document.getElementById('etcFee').value;
+    const hasFeeInfo = Boolean(fee || etcFee || utilities.length);
+    if (utilities.length) feeParts.push(`포함: ${utilities.join(', ')}`);
+    if (hasFeeInfo && notIncluded.length) feeParts.push(`포함되지 않음: ${notIncluded.join(', ')}`);
     if (etcFee) feeParts.push(etcFee);
     flyerFee.innerHTML = feeParts.length
       ? feeParts.map(m => `<div>${m}</div>`).join('')
@@ -1273,6 +1276,10 @@
   // ---------- 제출 ----------
   document.getElementById('listingForm').addEventListener('submit', (e) => {
     e.preventDefault();
+    if (current < steps.length) {
+      alert('아직 입력하지 않은 정보가 있어요. 마지막 단계까지 입력을 완료해주세요.');
+      return;
+    }
     if (!document.getElementById('ownerCheck').checked) {
       alert('소유자 확인 동의가 필요해요.');
       return;
